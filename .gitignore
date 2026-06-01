@@ -1,2 +1,17 @@
+# Claude
 CLAUDE.md
 plans/
+
+# Raw and processed data
+data/raw/
+data/processed/
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
