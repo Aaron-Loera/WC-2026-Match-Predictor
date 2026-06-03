@@ -3,3 +3,7 @@ pyarrow>=14.0
 requests>=2.31
 beautifulsoup4>=4.12
 python-dotenv>=1.0
+xgboost>=2.0
+optuna>=3.5
+scikit-learn>=1.4
+joblib>=1.3

@@ -356,7 +356,8 @@ def build_feature_matrix(matches_df: pd.DataFrame, rankings_df: pd.DataFrame) ->
     )
 
     # Final selection and cleanup
-    final_cols = FEATURE_COLS + ["outcome"]
+    df["year"] = df["date"].dt.year
+    final_cols = FEATURE_COLS + ["year", "outcome"]
     df = df[final_cols].dropna()
     return df.reset_index(drop=True)
 
@@ -479,7 +480,6 @@ def get_match_features(team_a: str, team_b: str, match_date: datetime) -> np.nda
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
-
 if __name__ == "__main__":
     import argparse
 
