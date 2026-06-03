@@ -31,6 +31,10 @@ FEATURE_COLS: list[str] = [
 
 _KNOCKOUT_STAGE_TERMS = ["Round of 16", "Quarter", "Semi", "Final", "3rd"]
 
+# ---------------------------------------------------------------------------
+# Private helpers
+# ---------------------------------------------------------------------------
+
 def _build_team_history(matches: pd.DataFrame) -> pd.DataFrame:
     """
     Concatenates match rows into long-format team history (two rows per match).
@@ -480,6 +484,7 @@ def get_match_features(team_a: str, team_b: str, match_date: datetime) -> np.nda
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
     import argparse
 

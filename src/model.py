@@ -359,6 +359,7 @@ def run_training_pipeline() -> dict:
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
     # CLI interface
     parser = argparse.ArgumentParser(description="Train WC2026 match predictor.")
