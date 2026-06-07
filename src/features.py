@@ -32,7 +32,7 @@ FEATURE_COLS: list[str] = [
 _KNOCKOUT_STAGE_TERMS = ["Round of 16", "Quarter", "Semi", "Final", "3rd"]
 
 # ---------------------------------------------------------------------------
-# Private helpers
+# Private Helpers
 # ---------------------------------------------------------------------------
 
 def _build_team_history(matches: pd.DataFrame) -> pd.DataFrame:
@@ -482,7 +482,7 @@ def get_match_features(team_a: str, team_b: str, match_date: datetime) -> np.nda
 
 
 # ---------------------------------------------------------------------------
-# CLI entry point
+# CLI Entry Point
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
