@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 582 582" width="582" height="582">
+  <defs>
+    <linearGradient id="ballGradient" gradientUnits="userSpaceOnUse" x1="291" y1="32" x2="291" y2="550">
+      <stop offset="0" stop-color="#9EDB35"/>
+      <stop offset="1" stop-color="#5DA10C"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer ring -->
+  <circle cx="291" cy="291" r="259" fill="none" stroke="url(#ballGradient)" stroke-width="63"/>
+
+  <!-- Inner pentagon (vertex pointing up) -->
+  <path d="M 291,148.5 L 426.5,247.0 L 374.8,406.3 L 207.2,406.3 L 155.5,247.0 Z"
+        fill="none" stroke="url(#ballGradient)" stroke-width="63" stroke-linejoin="round"/>
+
+  <!-- Connecting spokes from pentagon vertices to the ring -->
+  <line x1="291"   y1="148.5" x2="291"   y2="32"   stroke="url(#ballGradient)" stroke-width="63"/>
+  <line x1="426.5" y1="247.0" x2="537.3" y2="211.0" stroke="url(#ballGradient)" stroke-width="63"/>
+  <line x1="374.8" y1="406.3" x2="443.2" y2="500.5" stroke="url(#ballGradient)" stroke-width="63"/>
+  <line x1="207.2" y1="406.3" x2="138.8" y2="500.5" stroke="url(#ballGradient)" stroke-width="63"/>
+  <line x1="155.5" y1="247.0" x2="44.7"  y2="211.0" stroke="url(#ballGradient)" stroke-width="63"/>
+</svg>

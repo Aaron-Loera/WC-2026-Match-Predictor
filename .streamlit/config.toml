@@ -1,0 +1,10 @@
+# Streamlit theme for the WC2026 Match Predictor dashboard.
+# Forces a dark charcoal + pitch-green look so native widgets (selectboxes,
+# multiselect, chart frames) match the custom-styled cards in dashboard/app.py.
+[theme]
+base = "dark"
+primaryColor = "#7FB83E"            # pitch green — accents, focus, active controls
+backgroundColor = "#1B1D1F"         # charcoal app background
+secondaryBackgroundColor = "#26292C" # lighter grey for cards / inputs
+textColor = "#E8EAEC"               # near-white body text
+font = "sans serif"
