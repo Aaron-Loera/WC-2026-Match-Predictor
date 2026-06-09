@@ -170,6 +170,15 @@ def fetch_fifa_rankings() -> pd.DataFrame:
             "confederation": _CONFEDERATION.get(code, ""),
         })
 
+    # Empty row guard
+    if not rows:
+        preview = rankings_resp.text[:400].replace("\n", "\\n")
+        raise RuntimeError(
+            f"fetch_fifa_rankings: 0 rows parsed from {_ELO_RANKINGS_URL} — "
+            f"site may be blocking runner IP or TSV format changed. "
+            f"Response preview: {preview!r}"
+        )
+
     # Create and standardize DataFrame
     df = pd.DataFrame(rows)
     df["rank"] = pd.to_numeric(df["rank"], errors="coerce").astype("Int64")
