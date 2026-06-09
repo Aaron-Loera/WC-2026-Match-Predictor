@@ -2,8 +2,11 @@ name: Nightly Retrain
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC daily — after late matches finish
-  workflow_dispatch:        # manual trigger from GitHub UI
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   retrain:
@@ -11,6 +14,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - uses: actions/setup-python@v5
         with:
@@ -42,8 +47,9 @@ jobs:
 
       - name: Commit & push artifacts
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add models/model.pkl predictions.json
-          git commit -m "chore: nightly retrain $(date +%F)" || exit 0
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: nightly retrain $(date +%F)"
           git push
