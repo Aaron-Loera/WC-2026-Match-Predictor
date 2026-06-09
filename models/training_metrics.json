@@ -1,0 +1,23 @@
+[
+  {
+    "retrained_at": "2026-06-09T23:02:37.882386+00:00",
+    "test_logloss": 0.8927,
+    "test_accuracy": 0.5792,
+    "test_brier": 0.1759,
+    "val_logloss": 0.9563,
+    "best_params": {
+      "max_depth": 4,
+      "learning_rate": 0.050645,
+      "subsample": 0.765462,
+      "colsample_bytree": 0.859455,
+      "min_child_weight": 3
+    },
+    "n_estimators": 87,
+    "train_rows": 18892,
+    "val_rows": 964,
+    "test_rows": 3569,
+    "pass_logloss": true,
+    "pass_accuracy": true,
+    "pass_brier": true
+  }
+]
