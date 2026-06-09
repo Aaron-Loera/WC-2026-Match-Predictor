@@ -132,17 +132,24 @@ def fetch_fifa_rankings() -> pd.DataFrame:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/124.0.0.0 Safari/537.36"
-        )
+        ),
+        "Accept": "text/tab-separated-values,text/plain,*/*"
     }
 
-    # Fetch {code: name} dictionary from eloratings.net
-    names_resp = requests.get(_ELO_NAMES_URL, headers=ua_headers, timeout=30)
-    names_resp.raise_for_status()
     code_to_name: dict[str, str] = {}
-    for line in names_resp.text.splitlines():
-        parts = line.split("\t")
-        if len(parts) >= 2 and not parts[0].endswith("_loc"):
-            code_to_name[parts[0]] = parts[1]
+    
+    # Attempt to fetch {code: name} dictionary from eloratings.net
+    try:
+        names_resp = requests.get(_ELO_NAMES_URL, headers=ua_headers, timeout=30)
+        names_resp.raise_for_status()
+        for line in names_resp.text.splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2 and not parts[0].endswith("_loc"):
+                code_to_name[parts[0]] = parts[1]
+                
+    except requests.RequestException:
+        print(f"Warning: could not fetch Elo team names from {_ELO_NAMES_URL}")
+        code_to_name = {}
 
     # Fetch (rank, code, rating) rows from rankings
     rankings_resp = requests.get(_ELO_RANKINGS_URL, headers=ua_headers, timeout=30)
