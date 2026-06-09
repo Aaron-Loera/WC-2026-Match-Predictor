@@ -47,7 +47,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Public, read-only prediction data consumed cross-origin by the Streamlit dashboard
+# Public, read-only prediction data consumed by the Streamlit dashboard
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

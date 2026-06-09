@@ -16,3 +16,6 @@ __pycache__/
 .venv/
 *.egg-info/
 app_demo.py
+
+# Directories
+docs/
