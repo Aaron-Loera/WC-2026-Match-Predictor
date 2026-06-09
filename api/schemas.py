@@ -38,12 +38,31 @@ class OddsHistoryEntry(BaseModel):
 # Operational
 # ---------------------------------------------------------------------------
 
+class TrainingMetricsEntry(BaseModel):
+    """One nightly training run: test-set metrics, Optuna hyperparameters, and pass/fail flags."""
+    retrained_at: str
+    test_logloss: float
+    test_accuracy: float
+    test_brier: float
+    val_logloss: float
+    best_params: dict
+    n_estimators: int
+    train_rows: int
+    val_rows: int
+    test_rows: int
+    pass_logloss: bool
+    pass_accuracy: bool
+    pass_brier: bool
+
+
 class HealthResponse(BaseModel):
     """Liveness/readiness signal for the deployment platform and dashboard."""
     status: str = "ok"
     model_loaded: bool
     predictions_loaded: bool
     generated_at: str | None = None
+    last_logloss: float | None = None
+    metrics_pass: bool | None = None
 
 
 class RetrainResponse(BaseModel):

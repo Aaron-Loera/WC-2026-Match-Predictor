@@ -28,6 +28,7 @@ from api.dependencies import (
     lifespan,
     get_predictions,
     get_history,
+    get_metrics,
     verify_admin_token,
     run_retrain_job,
 )
@@ -38,6 +39,7 @@ from api.schemas import (
     OddsHistoryEntry,
     HealthResponse,
     RetrainResponse,
+    TrainingMetricsEntry,
 )
 
 app = FastAPI(
@@ -61,27 +63,57 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 @app.get("/health", response_model=HealthResponse, tags=["ops"])
-def health(predictions: dict = Depends(get_predictions)) -> HealthResponse:
+def health(
+    predictions: dict = Depends(get_predictions),
+    metrics: list[dict] = Depends(get_metrics),
+) -> HealthResponse:
     """
     Liveness check for the deployment platform.
-    
-    Returns operational status and the timestamp of currently loaded predictions.
-    Used by monitoring services to determine if the API can serve requests. Raises
-    503 error if predictions haven't been loaded at startup.
-    
+
+    Returns operational status, the timestamp of currently loaded predictions, and
+    a summary of the latest training run (logloss + pass/fail). Raises 503 if
+    predictions haven't been loaded at startup.
+
     Args:
         predictions: Cached predictions payload, injected by dependency provider.
-        
+        metrics: Training-metrics history, injected by dependency provider.
+
     Returns:
-        HealthResponse: Status code, boolean flags for model/predictions state, and
-        "generated_at" timestamps.
+        HealthResponse: Status, boolean flags, generated_at, last_logloss, metrics_pass.
     """
+    latest = metrics[-1] if metrics else {}
     return HealthResponse(
         status="ok",
         model_loaded=deps._model is not None,
         predictions_loaded=predictions is not None,
         generated_at=predictions.get("generated_at"),
+        last_logloss=latest.get("test_logloss"),
+        metrics_pass=(
+            all([
+                latest.get("pass_logloss", True),
+                latest.get("pass_accuracy", True),
+                latest.get("pass_brier", True),
+            ])
+            if latest else None
+        ),
     )
+
+
+@app.get("/predictions/metrics", response_model=list[TrainingMetricsEntry], tags=["ops"])
+def get_training_metrics(metrics: list[dict] = Depends(get_metrics)) -> list[dict]:
+    """
+    Training-run history: test metrics, Optuna hyperparameters, and pass/fail flags.
+
+    Returns all recorded training runs oldest-first. Returns an empty list before the
+    first nightly retrain has committed `models/training_metrics.json`.
+
+    Args:
+        metrics: Training-metrics history, injected by dependency provider.
+
+    Returns:
+        list: Array of TrainingMetricsEntry objects.
+    """
+    return metrics
 
 
 # ---------------------------------------------------------------------------

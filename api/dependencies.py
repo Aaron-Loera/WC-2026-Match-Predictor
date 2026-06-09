@@ -44,12 +44,14 @@ load_dotenv()
 MODEL_PATH = Path("models/model.pkl")
 PREDICTIONS_PATH = Path("predictions.json")
 HISTORY_PATH = Path("odds_history.json")
+METRICS_PATH = Path("models/training_metrics.json")
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
 # Module-level shared state variables
 _model = None
 _predictions: dict | None = None
 _history: list[dict] = []
+_metrics: list[dict] = []
 _retrain_in_progress: bool = False
 
 
@@ -113,6 +115,25 @@ def _save_history(history: list[dict], path: Path=HISTORY_PATH) -> None:
     path.write_text(json.dumps(history, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def _load_metrics(path: Path = METRICS_PATH) -> list[dict]:
+    """
+    Load the training-metrics history from disk, or return an empty list if absent/corrupt.
+
+    Args:
+        path: Path to the training metrics JSON file.
+
+    Returns:
+        list: Training run entries, oldest first. Empty on first deploy.
+    """
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"training_metrics.json unreadable ({exc!r}) — returning empty list.")
+        return []
+
+
 def _record_snapshot(predictions: dict, history: list[dict]) -> list[dict]:
     """
     Append a deduplicated {generated_at, tournament_odds} snapshot if `predictions` is new.
@@ -158,13 +179,14 @@ async def lifespan(app: FastAPI):
         None: Control returns to FastAPI, which serves requests until shutdown.
     """
     # Module level variables
-    global _model, _predictions, _history
+    global _model, _predictions, _history, _metrics
 
     # Startup phase
     print("Loading model and predictions at startup...")
     _model = model.load_model(MODEL_PATH)
     _predictions = _load_predictions(PREDICTIONS_PATH)
     _history = _load_history(HISTORY_PATH)
+    _metrics = _load_metrics(METRICS_PATH)
 
     updated = _record_snapshot(_predictions, _history)
     if updated is not _history:
@@ -204,14 +226,27 @@ def get_predictions() -> dict:
 def get_history() -> list[dict]:
     """
     Return the in-memory odds-history snapshot list, possibly empty on first run.
-    
+
     Args:
         None:
-        
+
     Returns:
         list: A list of {generated_at, tournament_odds} snapshots, oldest first.
     """
     return _history
+
+
+def get_metrics() -> list[dict]:
+    """
+    Return the in-memory training-metrics history, possibly empty before first retrain.
+
+    Args:
+        None:
+
+    Returns:
+        list: Training run entries (oldest first), each with test metrics and hyperparameters.
+    """
+    return _metrics
 
 
 # ---------------------------------------------------------------------------
@@ -274,8 +309,8 @@ def run_retrain_job() -> None:
         None:
     """
     # Module level variables
-    global _model, _predictions, _history, _retrain_in_progress
-    
+    global _model, _predictions, _history, _metrics, _retrain_in_progress
+
     try:
         print("Background retrain started...")
         model.run_training_pipeline()
@@ -283,13 +318,14 @@ def run_retrain_job() -> None:
 
         _model = model.load_model(MODEL_PATH)
         _predictions = _load_predictions(PREDICTIONS_PATH)
+        _metrics = _load_metrics(METRICS_PATH)
 
         updated = _record_snapshot(_predictions, _history)
         if updated is not _history:
             _history = updated
             _save_history(_history, HISTORY_PATH)
 
-        print("Retrain complete — reloaded model, predictions, history.")
+        print("Retrain complete — reloaded model, predictions, history, metrics.")
         
     except Exception as exc:
         print(f"Retrain failed: {exc!r}")

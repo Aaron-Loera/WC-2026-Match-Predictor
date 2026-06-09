@@ -246,30 +246,43 @@ def _build_proba_cache(
     return cache
 
 
-def _prepare_simulation() -> tuple[dict[tuple[str, str], np.ndarray], dict[str, float]]:
-    """    
+def _prepare_simulation() -> tuple[dict[tuple[str, str], np.ndarray], dict[str, float], int]:
+    """
     Prepare a one-time setup: load a model, fetch the data, compute team stats,
     and cache match probabilities.
     
+    Prints a warning statement for `cache_misses` if team pairs are absent from `proba_cache`
+    indicating a team name mismatch causing a uniform-probability fallback for that pair.
+
     Args:
         None:
-        
+
     Returns:
-        tuple: A 2-tuple containing (proba_cache, rank_lookups)
+        tuple: A 3-tuple containing (proba_cache, rank_lookups, cache_misses).
     """
     # Load model and data
     model = load_model()
     prior, rankings, team_stats, h2h_lookup = _load_and_prepare()
-    
+
     # Create FIFA rank lookup
     rank_lookup = {
         str(row["team"]): float(pd.to_numeric(row["rank"], errors="coerce") or 999)
         for _, row in rankings.iterrows()
     }
-    
+
     # Compute match probabilities
     proba_cache = _build_proba_cache(model, prior, rankings, team_stats, h2h_lookup)
-    return proba_cache, rank_lookup
+
+    # Count how many team pairs are absent
+    all_teams = [t for group in WC2026_GROUPS.values() for t in group]
+    cache_misses = sum(
+        1 for a, b in itertools.permutations(all_teams, 2)
+        if (a, b) not in proba_cache
+    )
+    if cache_misses:
+        print(f"WARNING: {cache_misses} team-pair(s) missing from proba_cache — uniform fallback active.")
+
+    return proba_cache, rank_lookup, cache_misses
 
 
 # ---------------------------------------------------------------------------
@@ -490,7 +503,7 @@ def simulate_tournament(n: int=N_SIMULATIONS) -> dict[str, float]:
     Returns:
         dict: Tournament win probabilities.
     """
-    proba_cache, rank_lookup = _prepare_simulation()
+    proba_cache, rank_lookup, _cache_misses = _prepare_simulation()
     return _run_monte_carlo(n, proba_cache, rank_lookup)
 
 
@@ -532,7 +545,7 @@ def export_predictions(output_path: Path | str=PREDICTIONS_PATH) -> None:
     output_path = Path(output_path)
     
     # Prepare and run simulation
-    proba_cache, rank_lookup = _prepare_simulation()
+    proba_cache, rank_lookup, cache_misses = _prepare_simulation()
     tournament_odds = _run_monte_carlo(N_SIMULATIONS, proba_cache, rank_lookup)
 
     # Get match predictions for all 72 matches
@@ -552,6 +565,7 @@ def export_predictions(output_path: Path | str=PREDICTIONS_PATH) -> None:
     payload = {
         "generated_at": datetime.now(tz=timezone.utc).isoformat(),
         "n_simulations": N_SIMULATIONS,
+        "cache_misses": cache_misses,
         "tournament_odds": tournament_odds,
         "match_predictions": match_predictions,
     }

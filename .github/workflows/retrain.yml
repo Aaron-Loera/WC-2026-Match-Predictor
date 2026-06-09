@@ -49,7 +49,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add models/model.pkl predictions.json
+          git add models/model.pkl predictions.json models/training_metrics.json
           git diff --cached --quiet && exit 0
           git commit -m "chore: nightly retrain $(date +%F)"
           git push

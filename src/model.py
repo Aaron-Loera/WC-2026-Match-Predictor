@@ -1,10 +1,12 @@
 from __future__ import annotations
 import argparse
+import json
 import sys
 import joblib
 import optuna
 import numpy as np
 import pandas as pd
+from datetime import datetime, timezone
 from pathlib import Path
 from xgboost import XGBClassifier
 from sklearn.calibration import calibration_curve
@@ -16,6 +18,7 @@ import src.data as data
 from src.features import FEATURE_COLS, build_feature_matrix
 
 MODEL_PATH = Path("models/model.pkl")
+METRICS_PATH = Path("models/training_metrics.json")
 
 _TRAIN_BEFORE_YEAR = 2022
 _VAL_YEAR = 2022
@@ -71,8 +74,8 @@ def _load_or_rebuild_features() -> pd.DataFrame:
 
 
 def _temporal_split(
-    df: pd.DataFrame
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    df: pd.DataFrame,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict]:
     """
     Split historical match data into train/val/test sets using temporal boundaries.
     
@@ -105,15 +108,16 @@ def _temporal_split(
     print(
         f"Split Sizes — Train: {len(X_train):,} | Val: {len(X_val):,} | Test: {len(X_test):,}"
     )
-    return X_train, y_train, X_val, y_val, X_test, y_test
+    split_sizes = {"train_rows": len(X_train), "val_rows": len(X_val), "test_rows": len(X_test)}
+    return X_train, y_train, X_val, y_val, X_test, y_test, split_sizes
 
 
 def _run_optuna_search(
     X_train: np.ndarray,
     y_train: np.ndarray,
     X_val: np.ndarray,
-    y_val: np.ndarray
-) -> tuple[dict, int]:
+    y_val: np.ndarray,
+) -> tuple[dict, int, float]:
     """
     Run Bayesian hyperparameter search using Optuna to minimize validation log-loss.
     
@@ -128,8 +132,8 @@ def _run_optuna_search(
         y_val: Validation labels/outcomes.
         
     Returns:
-        tuple: (best_params, best_n_estimators) where `best_params` is a dict of tuned
-        hyperparameters and `best_n_estimators` is the optimal number of boosting rounds.
+        tuple: (best_params, best_n_estimators, study.best_value) where `best_params` is a dict of
+        tuned hyperparameters and `best_n_estimators` is the optimal number of boosting rounds.
     """
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     
@@ -176,7 +180,35 @@ def _run_optuna_search(
         f"Optuna best val log-loss: {study.best_value:.4f} | "
         f"n_estimators={best_n_estimators} | params={best_params}"
     )
-    return best_params, best_n_estimators
+    return best_params, best_n_estimators, study.best_value
+
+
+def _append_training_metrics(path: Path, entry: dict) -> None:
+    """
+    Append one training-run entry to the append-only metrics log, deduplicating by "retrained_at".
+    
+    Writes a new training-run record to a JSON file, preventing duplicate entries for the same
+    training stamp. If the file is malformed or missing, a new list is created.
+    
+    Args:
+        path: The append-only metrics JSON file.
+        entry: One training-run record.
+        
+    Returns:
+        None:
+    """
+    # Attempt to load JSON file
+    try:
+        history: list[dict] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    except (json.JSONDecodeError, OSError):
+        history = []
+    if history and history[-1].get("retrained_at") == entry["retrained_at"]:
+        return
+    # Append new entry and write to JSON file
+    history.append(entry)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(history, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Training metrics appended to {path} ({len(history)} total run(s)).")
 
 
 # ---------------------------------------------------------------------------
@@ -331,11 +363,11 @@ def run_training_pipeline() -> dict:
     df = _load_or_rebuild_features()
 
     # Step 2 — temporal split
-    X_train, y_train, X_val, y_val, X_test, y_test = _temporal_split(df)
+    X_train, y_train, X_val, y_val, X_test, y_test, split_sizes = _temporal_split(df)
 
     # Step 3 — hyperparameter search
     print(f"Running Optuna search ({_OPTUNA_N_TRIALS} trials)...")
-    best_params, best_n = _run_optuna_search(X_train, y_train, X_val, y_val)
+    best_params, best_n, best_val_logloss = _run_optuna_search(X_train, y_train, X_val, y_val)
 
     # Step 4 — refit on train and val splits combined
     X_tv = np.concatenate([X_train, X_val], axis=0)
@@ -353,6 +385,25 @@ def run_training_pipeline() -> dict:
 
     # Step 6 — save model
     save_model(model, MODEL_PATH)
+
+    # Step 7 — persist training metrics
+    entry = {
+        "retrained_at": datetime.now(timezone.utc).isoformat(),
+        "test_logloss": metrics["logloss"],
+        "test_accuracy": metrics["accuracy"],
+        "test_brier": metrics["brier"],
+        "val_logloss": round(best_val_logloss, 4),
+        "best_params": {
+            k: round(v, 6) if isinstance(v, float) else v
+            for k, v in best_params.items()
+        },
+        "n_estimators": best_n,
+        **split_sizes,
+        "pass_logloss": metrics["logloss"] < 1.0,
+        "pass_accuracy": metrics["accuracy"] > 0.52,
+        "pass_brier": metrics["brier"] < 0.22,
+    }
+    _append_training_metrics(METRICS_PATH, entry)
     return metrics
 
 
