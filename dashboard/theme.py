@@ -133,12 +133,15 @@ def inject_theme() -> None:
         .wc-team{width:190px;flex-shrink:0}
         .wc-team .nm{font-size:15px;color:var(--wc-txt);font-weight:500}
         .wc-team .cf{font-size:12px;color:var(--wc-txt3)}
-        .wc-track{flex:1;height:26px;background:var(--wc-track);border-radius:6px;overflow:hidden}
-        .wc-fill{display:block;height:100%;border-radius:6px;transform-origin:left center;
-          animation:wc-bar-grow .9s cubic-bezier(.34,1.08,.44,1) both}
+        .wc-track{flex:1;height:26px;background:var(--wc-track);border-radius:6px;overflow:hidden;
+          display:flex;align-items:stretch}
+        .wc-fill{flex:0 0 auto;border-radius:6px;
+          animation:wc-bar-grow .9s cubic-bezier(.34,1.08,.44,1) forwards}
         .wc-pct{width:60px;text-align:right;font-family:'Barlow Condensed',sans-serif;
           font-size:18px;font-weight:700;color:var(--wc-txt);flex-shrink:0}
-        @keyframes wc-bar-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+        @keyframes wc-bar-grow{
+          from{clip-path:inset(0 100% 0 0 round 6px)}
+          to  {clip-path:inset(0 0%   0 0 round 6px)}}
         .wc-divider{display:flex;align-items:center;gap:10px;padding:10px 0;
           font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--wc-txt3)}
         .wc-divider .ln{flex:1;border-top:1px dashed var(--wc-bd)}
