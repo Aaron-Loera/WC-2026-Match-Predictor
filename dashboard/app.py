@@ -213,7 +213,7 @@ def _format_generated(raw: str | None) -> str:
         return "unknown"
     try:
         ts = dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        return ts.strftime("%b %-d, %Y %H:%M UTC")
+        return f"{ts:%b} {ts.day}, {ts:%Y %H:%M} UTC"
     except (ValueError, TypeError):
         return raw
 
@@ -224,7 +224,7 @@ def _format_generated(raw: str | None) -> str:
 
 def render_header() -> None:
     """Brand row + API health dot (no sidebar)."""
-    dot, label = STATUS_WARN, "API status unknown"
+    dot, label, ts = STATUS_WARN, "API status unknown", ""
     try:
         health = fetch_health()
         if (health.get("status") == "ok"
@@ -233,16 +233,17 @@ def render_header() -> None:
             dot, label = STATUS_OK, "API live"
         else:
             dot, label = STATUS_WARN, "API degraded"
-        label = f"{label} · predictions {_format_generated(health.get('generated_at'))}"
+        ts = f" · predictions {_format_generated(health.get('generated_at'))}"
     except requests.RequestException:
         dot, label = STATUS_ERR, "API unreachable"
 
+    ts_html = f'<span class="wc-api-ts">{html.escape(ts)}</span>' if ts else ""
     st.markdown(
         f'<div class="wc-header">'
         f'  <div class="wc-brand">{ball_svg(22)} WC 2026 Predictor</div>'
         f'  <div class="wc-api-status">'
         f'    <span class="wc-dot" style="background:{dot};"></span>'
-        f'    {html.escape(label)}'
+        f'    {html.escape(label)}{ts_html}'
         f'  </div>'
         f'</div>',
         unsafe_allow_html=True,
@@ -292,6 +293,13 @@ def _banner_component_html(ticker: str) -> str:
         ".wc-tick-val{font-family:'Barlow Condensed',sans-serif;font-size:17px;"
         "font-weight:700;color:#9FD45B}"
         "@keyframes wc-ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}"
+        "@media (max-width:600px){"
+        ".wc-banner-inner{grid-template-columns:1fr;gap:14px;padding:16px}"
+        ".wc-ticker-outer{display:none}"
+        ".wc-tourn-name{font-size:22px}"
+        ".wc-cd-val{font-size:38px}"
+        ".wc-cd-sep{font-size:28px;margin-bottom:10px}"
+        "}"
         "</style></head><body>"
         "<div class='wc-banner'><div class='wc-banner-inner'>"
         "<div>"
@@ -335,6 +343,12 @@ def _banner_component_html(ticker: str) -> str:
         "<span class=\"wc-cd-lbl\">Sec</span></div>'"
         "+'</div>';}"
         "tick();setInterval(tick,1000);"
+        "function fit(){if(window.frameElement){"
+        "window.frameElement.style.height=(document.body.scrollHeight+2)+'px';}}"
+        "window.addEventListener('load',fit);"
+        "window.addEventListener('resize',fit);"
+        "if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fit);}"
+        "setTimeout(fit,300);setTimeout(fit,1200);fit();"
         "</script></body></html>"
     )
 

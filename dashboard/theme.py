@@ -197,6 +197,56 @@ def inject_theme() -> None:
         .wc-eyebrow{font-size:14px;color:var(--wc-txt2);margin:0 0 22px}
         .wc-foot{font-size:12px;color:var(--wc-txt3);padding-top:14px;
           margin-top:16px;border-top:.5px solid var(--wc-bd)}
+
+        /* === RESPONSIVE: TABLET (max-width 1024px) === */
+        @media (max-width:1024px){
+          .block-container{padding-left:1.5rem;padding-right:1.5rem}
+          [data-testid="stCustomComponentV1"]{margin:0 -1.5rem!important;width:calc(100% + 3rem)!important}
+          .wc-banner{margin:0 -1.5rem}
+          .wc-banner-inner{padding:20px 1.5rem}
+          .wc-kpis{grid-template-columns:repeat(2,1fr)}
+          .wc-groups{grid-template-columns:repeat(2,1fr)}
+        }
+
+        /* === RESPONSIVE: PHONE (max-width 600px) === */
+        @media (max-width:600px){
+          .block-container{padding-left:1rem;padding-right:1rem}
+          [data-testid="stCustomComponentV1"]{margin:0 -1rem!important;width:calc(100% + 2rem)!important}
+          .wc-banner{margin:0 -1rem}
+          .wc-banner-inner{padding:16px 1rem}
+
+          /* Grids collapse */
+          .wc-cards{grid-template-columns:1fr}
+          .wc-movers{grid-template-columns:1fr}
+          .wc-groups{grid-template-columns:1fr}
+          .wc-kpis{grid-template-columns:repeat(2,1fr)}
+
+          /* Shrink display type (!important beats inline font-size in app.py) */
+          .wc-kpi .val{font-size:28px!important}
+          .wc-card .big{font-size:38px}
+          .wc-split{height:44px}
+          .wc-split div{font-size:16px}
+
+          /* Title-race rows — tightest layout */
+          .wc-team{width:auto;flex:1;min-width:0}
+          .wc-team .nm{font-size:13px;white-space:nowrap;overflow:hidden;
+            text-overflow:ellipsis;display:block}
+          .wc-team .cf{display:none}
+          .wc-pct{width:46px;font-size:15px}
+          .wc-track{height:22px;min-width:60px}
+
+          /* Header */
+          .wc-header{flex-wrap:wrap;gap:6px}
+          .wc-api-status{font-size:12px}
+          .wc-api-ts{display:none}
+
+          /* Tabs (BaseWeb tab-list scrolls horizontally on overflow) */
+          .stTabs [data-baseweb="tab"]{padding:10px 12px!important;font-size:13px!important}
+
+          /* Section header */
+          .wc-section{flex-wrap:wrap;gap:8px}
+          .wc-section h3{white-space:normal}
+        }
         </style>
         """,
         unsafe_allow_html=True,
