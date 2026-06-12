@@ -1,561 +1,561 @@
 {
-  "generated_at": "2026-06-10T07:41:35.881841+00:00",
+  "generated_at": "2026-06-12T07:50:04.184872+00:00",
   "n_simulations": 10000,
   "cache_misses": 0,
   "tournament_odds": {
-    "Mexico": 0.0102,
+    "Mexico": 0.0183,
     "South Africa": 0.0003,
     "Korea Republic": 0.0,
-    "Czechia": 0.0006,
-    "Canada": 0.0044,
-    "Bosnia and Herzegovina": 0.0002,
+    "Czechia": 0.0004,
+    "Canada": 0.0048,
+    "Bosnia and Herzegovina": 0.0,
     "Qatar": 0.0,
-    "Switzerland": 0.0201,
-    "Brazil": 0.0716,
-    "Morocco": 0.0074,
-    "Haiti": 0.0,
-    "Scotland": 0.001,
+    "Switzerland": 0.0211,
+    "Brazil": 0.0651,
+    "Morocco": 0.0085,
+    "Haiti": 0.0001,
+    "Scotland": 0.0015,
     "USA": 0.0,
-    "Paraguay": 0.0061,
-    "Australia": 0.0036,
-    "Turkey": 0.0099,
-    "Germany": 0.0364,
+    "Paraguay": 0.007,
+    "Australia": 0.0069,
+    "Turkey": 0.013,
+    "Germany": 0.0348,
     "Curaçao": 0.0,
-    "Ivory Coast": 0.0012,
-    "Ecuador": 0.0243,
-    "Netherlands": 0.0479,
-    "Japan": 0.0179,
-    "Sweden": 0.0005,
-    "Tunisia": 0.0001,
-    "Belgium": 0.0293,
-    "Egypt": 0.0013,
+    "Ivory Coast": 0.0011,
+    "Ecuador": 0.0247,
+    "Netherlands": 0.0498,
+    "Japan": 0.0176,
+    "Sweden": 0.0003,
+    "Tunisia": 0.0005,
+    "Belgium": 0.032,
+    "Egypt": 0.0011,
     "IR Iran": 0.0,
-    "New Zealand": 0.0001,
-    "Spain": 0.129,
-    "Cape Verde": 0.0002,
+    "New Zealand": 0.0,
+    "Spain": 0.15,
+    "Cape Verde": 0.0,
     "Saudi Arabia": 0.0001,
-    "Uruguay": 0.0166,
-    "France": 0.0859,
-    "Senegal": 0.0089,
-    "Iraq": 0.0001,
-    "Norway": 0.0102,
-    "Argentina": 0.1838,
-    "Algeria": 0.0042,
-    "Austria": 0.0047,
+    "Uruguay": 0.0219,
+    "France": 0.0819,
+    "Senegal": 0.0047,
+    "Iraq": 0.0,
+    "Norway": 0.0082,
+    "Argentina": 0.1455,
+    "Algeria": 0.0044,
+    "Austria": 0.0031,
     "Jordan": 0.0,
-    "Portugal": 0.0956,
+    "Portugal": 0.0856,
     "Congo DR": 0.0,
-    "Uzbekistan": 0.0008,
-    "Colombia": 0.0395,
-    "England": 0.0949,
-    "Croatia": 0.0307,
-    "Ghana": 0.0002,
-    "Panama": 0.0002
+    "Uzbekistan": 0.0007,
+    "Colombia": 0.0416,
+    "England": 0.1072,
+    "Croatia": 0.0354,
+    "Ghana": 0.0,
+    "Panama": 0.0008
   },
   "match_predictions": [
     {
       "home": "Mexico",
       "away": "South Africa",
-      "p_home_win": 0.5241,
-      "p_draw": 0.343,
-      "p_away_win": 0.1329
+      "p_home_win": 0.5172,
+      "p_draw": 0.3506,
+      "p_away_win": 0.1322
     },
     {
       "home": "Mexico",
       "away": "Korea Republic",
-      "p_home_win": 0.8002,
-      "p_draw": 0.1182,
-      "p_away_win": 0.0816
+      "p_home_win": 0.7794,
+      "p_draw": 0.13,
+      "p_away_win": 0.0906
     },
     {
       "home": "Mexico",
       "away": "Czechia",
-      "p_home_win": 0.4471,
-      "p_draw": 0.3942,
-      "p_away_win": 0.1587
+      "p_home_win": 0.4479,
+      "p_draw": 0.3985,
+      "p_away_win": 0.1536
     },
     {
       "home": "South Africa",
       "away": "Korea Republic",
-      "p_home_win": 0.4725,
-      "p_draw": 0.353,
-      "p_away_win": 0.1745
+      "p_home_win": 0.4935,
+      "p_draw": 0.3403,
+      "p_away_win": 0.1662
     },
     {
       "home": "South Africa",
       "away": "Czechia",
-      "p_home_win": 0.3297,
-      "p_draw": 0.3652,
-      "p_away_win": 0.3051
+      "p_home_win": 0.2651,
+      "p_draw": 0.3932,
+      "p_away_win": 0.3418
     },
     {
       "home": "Korea Republic",
       "away": "Czechia",
-      "p_home_win": 0.1731,
-      "p_draw": 0.305,
-      "p_away_win": 0.5219
+      "p_home_win": 0.1709,
+      "p_draw": 0.2854,
+      "p_away_win": 0.5437
     },
     {
       "home": "Canada",
       "away": "Bosnia and Herzegovina",
-      "p_home_win": 0.4764,
-      "p_draw": 0.3605,
-      "p_away_win": 0.1631
+      "p_home_win": 0.4359,
+      "p_draw": 0.3758,
+      "p_away_win": 0.1883
     },
     {
       "home": "Canada",
       "away": "Qatar",
-      "p_home_win": 0.5734,
+      "p_home_win": 0.5615,
       "p_draw": 0.3086,
-      "p_away_win": 0.118
+      "p_away_win": 0.1298
     },
     {
       "home": "Canada",
       "away": "Switzerland",
-      "p_home_win": 0.2152,
-      "p_draw": 0.3765,
-      "p_away_win": 0.4084
+      "p_home_win": 0.2078,
+      "p_draw": 0.3948,
+      "p_away_win": 0.3974
     },
     {
       "home": "Bosnia and Herzegovina",
       "away": "Qatar",
-      "p_home_win": 0.4329,
-      "p_draw": 0.3591,
-      "p_away_win": 0.208
+      "p_home_win": 0.4127,
+      "p_draw": 0.3753,
+      "p_away_win": 0.2121
     },
     {
       "home": "Bosnia and Herzegovina",
       "away": "Switzerland",
-      "p_home_win": 0.1063,
-      "p_draw": 0.3032,
-      "p_away_win": 0.5905
+      "p_home_win": 0.1135,
+      "p_draw": 0.303,
+      "p_away_win": 0.5835
     },
     {
       "home": "Qatar",
       "away": "Switzerland",
-      "p_home_win": 0.0902,
-      "p_draw": 0.2017,
-      "p_away_win": 0.7081
+      "p_home_win": 0.093,
+      "p_draw": 0.2055,
+      "p_away_win": 0.7016
     },
     {
       "home": "Brazil",
       "away": "Morocco",
-      "p_home_win": 0.4287,
-      "p_draw": 0.3769,
-      "p_away_win": 0.1944
+      "p_home_win": 0.4189,
+      "p_draw": 0.3893,
+      "p_away_win": 0.1918
     },
     {
       "home": "Brazil",
       "away": "Haiti",
-      "p_home_win": 0.6692,
-      "p_draw": 0.1988,
-      "p_away_win": 0.132
+      "p_home_win": 0.6597,
+      "p_draw": 0.2126,
+      "p_away_win": 0.1278
     },
     {
       "home": "Brazil",
       "away": "Scotland",
-      "p_home_win": 0.5668,
-      "p_draw": 0.2648,
-      "p_away_win": 0.1683
+      "p_home_win": 0.5642,
+      "p_draw": 0.2781,
+      "p_away_win": 0.1577
     },
     {
       "home": "Morocco",
       "away": "Haiti",
-      "p_home_win": 0.6227,
-      "p_draw": 0.2697,
-      "p_away_win": 0.1077
+      "p_home_win": 0.6441,
+      "p_draw": 0.2487,
+      "p_away_win": 0.1072
     },
     {
       "home": "Morocco",
       "away": "Scotland",
-      "p_home_win": 0.3622,
-      "p_draw": 0.417,
-      "p_away_win": 0.2208
+      "p_home_win": 0.3942,
+      "p_draw": 0.4077,
+      "p_away_win": 0.1981
     },
     {
       "home": "Haiti",
       "away": "Scotland",
-      "p_home_win": 0.2137,
-      "p_draw": 0.3488,
-      "p_away_win": 0.4375
+      "p_home_win": 0.2122,
+      "p_draw": 0.3403,
+      "p_away_win": 0.4475
     },
     {
       "home": "USA",
       "away": "Paraguay",
-      "p_home_win": 0.131,
-      "p_draw": 0.2702,
-      "p_away_win": 0.5988
+      "p_home_win": 0.118,
+      "p_draw": 0.273,
+      "p_away_win": 0.609
     },
     {
       "home": "USA",
       "away": "Australia",
-      "p_home_win": 0.0616,
-      "p_draw": 0.1861,
-      "p_away_win": 0.7523
+      "p_home_win": 0.084,
+      "p_draw": 0.1923,
+      "p_away_win": 0.7237
     },
     {
       "home": "USA",
       "away": "Turkey",
-      "p_home_win": 0.0933,
-      "p_draw": 0.2512,
-      "p_away_win": 0.6555
+      "p_home_win": 0.0908,
+      "p_draw": 0.2401,
+      "p_away_win": 0.669
     },
     {
       "home": "Paraguay",
       "away": "Australia",
-      "p_home_win": 0.3473,
-      "p_draw": 0.3922,
-      "p_away_win": 0.2605
+      "p_home_win": 0.3389,
+      "p_draw": 0.3953,
+      "p_away_win": 0.2659
     },
     {
       "home": "Paraguay",
       "away": "Turkey",
-      "p_home_win": 0.2558,
-      "p_draw": 0.4074,
-      "p_away_win": 0.3368
+      "p_home_win": 0.2821,
+      "p_draw": 0.3925,
+      "p_away_win": 0.3254
     },
     {
       "home": "Australia",
       "away": "Turkey",
-      "p_home_win": 0.2355,
-      "p_draw": 0.3681,
-      "p_away_win": 0.3964
+      "p_home_win": 0.2401,
+      "p_draw": 0.3587,
+      "p_away_win": 0.4012
     },
     {
       "home": "Germany",
       "away": "Curaçao",
-      "p_home_win": 0.8209,
-      "p_draw": 0.0771,
-      "p_away_win": 0.102
+      "p_home_win": 0.8331,
+      "p_draw": 0.094,
+      "p_away_win": 0.0729
     },
     {
       "home": "Germany",
       "away": "Ivory Coast",
-      "p_home_win": 0.4256,
-      "p_draw": 0.3925,
-      "p_away_win": 0.1819
+      "p_home_win": 0.4493,
+      "p_draw": 0.3753,
+      "p_away_win": 0.1753
     },
     {
       "home": "Germany",
       "away": "Ecuador",
-      "p_home_win": 0.3229,
-      "p_draw": 0.3349,
-      "p_away_win": 0.3422
+      "p_home_win": 0.285,
+      "p_draw": 0.3721,
+      "p_away_win": 0.3428
     },
     {
       "home": "Curaçao",
       "away": "Ivory Coast",
-      "p_home_win": 0.0927,
-      "p_draw": 0.3844,
-      "p_away_win": 0.5229
+      "p_home_win": 0.1037,
+      "p_draw": 0.3694,
+      "p_away_win": 0.5269
     },
     {
       "home": "Curaçao",
       "away": "Ecuador",
-      "p_home_win": 0.1078,
-      "p_draw": 0.2148,
-      "p_away_win": 0.6774
+      "p_home_win": 0.1004,
+      "p_draw": 0.2329,
+      "p_away_win": 0.6668
     },
     {
       "home": "Ivory Coast",
       "away": "Ecuador",
-      "p_home_win": 0.1608,
-      "p_draw": 0.3154,
-      "p_away_win": 0.5238
+      "p_home_win": 0.1842,
+      "p_draw": 0.3367,
+      "p_away_win": 0.479
     },
     {
       "home": "Netherlands",
       "away": "Japan",
-      "p_home_win": 0.2943,
-      "p_draw": 0.448,
-      "p_away_win": 0.2578
+      "p_home_win": 0.3551,
+      "p_draw": 0.3928,
+      "p_away_win": 0.2521
     },
     {
       "home": "Netherlands",
       "away": "Sweden",
-      "p_home_win": 0.4965,
-      "p_draw": 0.3473,
-      "p_away_win": 0.1562
+      "p_home_win": 0.4991,
+      "p_draw": 0.3433,
+      "p_away_win": 0.1577
     },
     {
       "home": "Netherlands",
       "away": "Tunisia",
-      "p_home_win": 0.5937,
-      "p_draw": 0.2887,
-      "p_away_win": 0.1176
+      "p_home_win": 0.5534,
+      "p_draw": 0.3165,
+      "p_away_win": 0.1301
     },
     {
       "home": "Japan",
       "away": "Sweden",
-      "p_home_win": 0.4683,
-      "p_draw": 0.3378,
-      "p_away_win": 0.1939
+      "p_home_win": 0.471,
+      "p_draw": 0.3463,
+      "p_away_win": 0.1827
     },
     {
       "home": "Japan",
       "away": "Tunisia",
-      "p_home_win": 0.5079,
-      "p_draw": 0.3482,
-      "p_away_win": 0.144
+      "p_home_win": 0.4659,
+      "p_draw": 0.3716,
+      "p_away_win": 0.1625
     },
     {
       "home": "Sweden",
       "away": "Tunisia",
-      "p_home_win": 0.3557,
-      "p_draw": 0.3702,
-      "p_away_win": 0.2741
+      "p_home_win": 0.3514,
+      "p_draw": 0.3627,
+      "p_away_win": 0.2859
     },
     {
       "home": "Belgium",
       "away": "Egypt",
-      "p_home_win": 0.4387,
-      "p_draw": 0.3676,
-      "p_away_win": 0.1937
+      "p_home_win": 0.4644,
+      "p_draw": 0.3614,
+      "p_away_win": 0.1742
     },
     {
       "home": "Belgium",
       "away": "IR Iran",
-      "p_home_win": 0.7871,
-      "p_draw": 0.0984,
-      "p_away_win": 0.1145
+      "p_home_win": 0.7825,
+      "p_draw": 0.1048,
+      "p_away_win": 0.1127
     },
     {
       "home": "Belgium",
       "away": "New Zealand",
-      "p_home_win": 0.7237,
-      "p_draw": 0.1762,
-      "p_away_win": 0.1001
+      "p_home_win": 0.7216,
+      "p_draw": 0.1641,
+      "p_away_win": 0.1143
     },
     {
       "home": "Egypt",
       "away": "IR Iran",
-      "p_home_win": 0.5292,
-      "p_draw": 0.3309,
-      "p_away_win": 0.1399
+      "p_home_win": 0.5313,
+      "p_draw": 0.324,
+      "p_away_win": 0.1446
     },
     {
       "home": "Egypt",
       "away": "New Zealand",
-      "p_home_win": 0.4466,
-      "p_draw": 0.3537,
-      "p_away_win": 0.1996
+      "p_home_win": 0.4483,
+      "p_draw": 0.3611,
+      "p_away_win": 0.1906
     },
     {
       "home": "IR Iran",
       "away": "New Zealand",
-      "p_home_win": 0.1809,
-      "p_draw": 0.3767,
-      "p_away_win": 0.4424
+      "p_home_win": 0.1873,
+      "p_draw": 0.3694,
+      "p_away_win": 0.4433
     },
     {
       "home": "Spain",
       "away": "Cape Verde",
-      "p_home_win": 0.6889,
-      "p_draw": 0.1967,
-      "p_away_win": 0.1144
+      "p_home_win": 0.6615,
+      "p_draw": 0.2255,
+      "p_away_win": 0.113
     },
     {
       "home": "Spain",
       "away": "Saudi Arabia",
-      "p_home_win": 0.653,
-      "p_draw": 0.2467,
-      "p_away_win": 0.1003
+      "p_home_win": 0.5848,
+      "p_draw": 0.2736,
+      "p_away_win": 0.1416
     },
     {
       "home": "Spain",
       "away": "Uruguay",
-      "p_home_win": 0.4034,
-      "p_draw": 0.3908,
-      "p_away_win": 0.2058
+      "p_home_win": 0.3776,
+      "p_draw": 0.3891,
+      "p_away_win": 0.2332
     },
     {
       "home": "Cape Verde",
       "away": "Saudi Arabia",
-      "p_home_win": 0.3291,
-      "p_draw": 0.3316,
-      "p_away_win": 0.3392
+      "p_home_win": 0.2985,
+      "p_draw": 0.3827,
+      "p_away_win": 0.3188
     },
     {
       "home": "Cape Verde",
       "away": "Uruguay",
-      "p_home_win": 0.0818,
-      "p_draw": 0.2091,
-      "p_away_win": 0.7091
+      "p_home_win": 0.1067,
+      "p_draw": 0.2567,
+      "p_away_win": 0.6366
     },
     {
       "home": "Saudi Arabia",
       "away": "Uruguay",
-      "p_home_win": 0.1018,
-      "p_draw": 0.2608,
-      "p_away_win": 0.6375
+      "p_home_win": 0.1067,
+      "p_draw": 0.2614,
+      "p_away_win": 0.6318
     },
     {
       "home": "France",
       "away": "Senegal",
-      "p_home_win": 0.4125,
-      "p_draw": 0.3963,
-      "p_away_win": 0.1912
+      "p_home_win": 0.4123,
+      "p_draw": 0.3909,
+      "p_away_win": 0.1968
     },
     {
       "home": "France",
       "away": "Iraq",
-      "p_home_win": 0.6882,
-      "p_draw": 0.1964,
-      "p_away_win": 0.1153
+      "p_home_win": 0.6399,
+      "p_draw": 0.246,
+      "p_away_win": 0.1141
     },
     {
       "home": "France",
       "away": "Norway",
-      "p_home_win": 0.4267,
-      "p_draw": 0.3333,
-      "p_away_win": 0.24
+      "p_home_win": 0.4536,
+      "p_draw": 0.3344,
+      "p_away_win": 0.212
     },
     {
       "home": "Senegal",
       "away": "Iraq",
-      "p_home_win": 0.4987,
-      "p_draw": 0.3536,
-      "p_away_win": 0.1476
+      "p_home_win": 0.5424,
+      "p_draw": 0.3243,
+      "p_away_win": 0.1333
     },
     {
       "home": "Senegal",
       "away": "Norway",
-      "p_home_win": 0.3049,
-      "p_draw": 0.4001,
-      "p_away_win": 0.2951
+      "p_home_win": 0.2752,
+      "p_draw": 0.4087,
+      "p_away_win": 0.316
     },
     {
       "home": "Iraq",
       "away": "Norway",
-      "p_home_win": 0.2015,
-      "p_draw": 0.356,
-      "p_away_win": 0.4425
+      "p_home_win": 0.1898,
+      "p_draw": 0.3543,
+      "p_away_win": 0.456
     },
     {
       "home": "Argentina",
       "away": "Algeria",
-      "p_home_win": 0.47,
-      "p_draw": 0.3514,
-      "p_away_win": 0.1786
+      "p_home_win": 0.4515,
+      "p_draw": 0.3604,
+      "p_away_win": 0.1881
     },
     {
       "home": "Argentina",
       "away": "Austria",
-      "p_home_win": 0.5423,
-      "p_draw": 0.291,
-      "p_away_win": 0.1667
+      "p_home_win": 0.5325,
+      "p_draw": 0.3203,
+      "p_away_win": 0.1472
     },
     {
       "home": "Argentina",
       "away": "Jordan",
-      "p_home_win": 0.6917,
-      "p_draw": 0.2141,
-      "p_away_win": 0.0942
+      "p_home_win": 0.6928,
+      "p_draw": 0.2088,
+      "p_away_win": 0.0984
     },
     {
       "home": "Algeria",
       "away": "Austria",
-      "p_home_win": 0.2895,
-      "p_draw": 0.4019,
-      "p_away_win": 0.3085
+      "p_home_win": 0.2676,
+      "p_draw": 0.4183,
+      "p_away_win": 0.3141
     },
     {
       "home": "Algeria",
       "away": "Jordan",
-      "p_home_win": 0.5276,
-      "p_draw": 0.3228,
-      "p_away_win": 0.1496
+      "p_home_win": 0.4528,
+      "p_draw": 0.3824,
+      "p_away_win": 0.1648
     },
     {
       "home": "Austria",
       "away": "Jordan",
-      "p_home_win": 0.4893,
-      "p_draw": 0.3297,
-      "p_away_win": 0.181
+      "p_home_win": 0.4508,
+      "p_draw": 0.344,
+      "p_away_win": 0.2053
     },
     {
       "home": "Portugal",
       "away": "Congo DR",
-      "p_home_win": 0.8273,
-      "p_draw": 0.113,
-      "p_away_win": 0.0597
+      "p_home_win": 0.8037,
+      "p_draw": 0.1246,
+      "p_away_win": 0.0717
     },
     {
       "home": "Portugal",
       "away": "Uzbekistan",
-      "p_home_win": 0.5616,
-      "p_draw": 0.2842,
-      "p_away_win": 0.1541
+      "p_home_win": 0.5494,
+      "p_draw": 0.3169,
+      "p_away_win": 0.1337
     },
     {
       "home": "Portugal",
       "away": "Colombia",
-      "p_home_win": 0.3679,
-      "p_draw": 0.371,
-      "p_away_win": 0.261
+      "p_home_win": 0.3318,
+      "p_draw": 0.3875,
+      "p_away_win": 0.2807
     },
     {
       "home": "Congo DR",
       "away": "Uzbekistan",
-      "p_home_win": 0.1616,
-      "p_draw": 0.3057,
-      "p_away_win": 0.5327
+      "p_home_win": 0.1723,
+      "p_draw": 0.2928,
+      "p_away_win": 0.5349
     },
     {
       "home": "Congo DR",
       "away": "Colombia",
-      "p_home_win": 0.1165,
-      "p_draw": 0.2408,
-      "p_away_win": 0.6427
+      "p_home_win": 0.0952,
+      "p_draw": 0.2265,
+      "p_away_win": 0.6783
     },
     {
       "home": "Uzbekistan",
       "away": "Colombia",
-      "p_home_win": 0.1818,
-      "p_draw": 0.3399,
-      "p_away_win": 0.4783
+      "p_home_win": 0.1545,
+      "p_draw": 0.3306,
+      "p_away_win": 0.5148
     },
     {
       "home": "England",
       "away": "Croatia",
-      "p_home_win": 0.3705,
-      "p_draw": 0.3709,
-      "p_away_win": 0.2587
+      "p_home_win": 0.3387,
+      "p_draw": 0.4071,
+      "p_away_win": 0.2542
     },
     {
       "home": "England",
       "away": "Ghana",
-      "p_home_win": 0.6374,
-      "p_draw": 0.2413,
-      "p_away_win": 0.1213
+      "p_home_win": 0.6009,
+      "p_draw": 0.2626,
+      "p_away_win": 0.1364
     },
     {
       "home": "England",
       "away": "Panama",
-      "p_home_win": 0.5407,
-      "p_draw": 0.3169,
-      "p_away_win": 0.1424
+      "p_home_win": 0.5395,
+      "p_draw": 0.3237,
+      "p_away_win": 0.1368
     },
     {
       "home": "Croatia",
       "away": "Ghana",
-      "p_home_win": 0.5709,
-      "p_draw": 0.2749,
-      "p_away_win": 0.1542
+      "p_home_win": 0.5728,
+      "p_draw": 0.2775,
+      "p_away_win": 0.1497
     },
     {
       "home": "Croatia",
       "away": "Panama",
-      "p_home_win": 0.5429,
-      "p_draw": 0.2907,
-      "p_away_win": 0.1664
+      "p_home_win": 0.5206,
+      "p_draw": 0.3007,
+      "p_away_win": 0.1787
     },
     {
       "home": "Ghana",
       "away": "Panama",
-      "p_home_win": 0.242,
-      "p_draw": 0.4119,
-      "p_away_win": 0.3462
+      "p_home_win": 0.2492,
+      "p_draw": 0.399,
+      "p_away_win": 0.3518
     }
   ]
 }
