@@ -45,11 +45,14 @@ jobs:
       - name: Simulate tournament & export predictions
         run: python src/simulator.py --simulate --export
 
+      - name: Update odds history
+        run: python src/simulator.py --update-history
+
       - name: Commit & push artifacts
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add models/model.pkl predictions.json models/training_metrics.json
+          git add models/model.pkl predictions.json models/training_metrics.json odds_history.json
           git diff --cached --quiet && exit 0
           git commit -m "chore: nightly retrain $(date +%F)"
           git push

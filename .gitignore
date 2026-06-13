@@ -17,5 +17,8 @@ __pycache__/
 *.egg-info/
 app_demo.py
 
+# Jupyter
+Scratch.ipynb
+
 # Directories
 docs/

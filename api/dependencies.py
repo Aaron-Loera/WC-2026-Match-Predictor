@@ -1,5 +1,5 @@
 """
-FastAPI startup lifecycle and dependency injection for the WC2026 predictions API
+FastAPI startup lifecycle and dependency injection for the WC2026 predictions API.
 
 This module handles three responsibilities:
 
@@ -34,6 +34,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import src.model as model
 import src.simulator as simulator
+import src.history as history
 
 load_dotenv()
 
@@ -80,41 +81,6 @@ def _load_predictions(path: Path=PREDICTIONS_PATH) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _load_history(path: Path=HISTORY_PATH) -> list[dict]:
-    """
-    Load the odds-history snapshot list from disk, or start fresh if absent/corrupt.
-    
-    Returns an empty list on first-ever run or if the file is malformed.
-
-    Args:
-        path: Path to the odds-history JSON file.
-
-    Returns:
-        list: A list of {generated_at, tournament_odds} snapshots, oldest first.
-    """
-    if not path.exists():
-        return []
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
-        print(f"odds_history.json unreadable ({exc!r}) — starting a fresh history.")
-        return []
-
-
-def _save_history(history: list[dict], path: Path=HISTORY_PATH) -> None:
-    """
-    Persist the odds-history snapshot list to disk as pretty-printed JSON.
-
-    Args:
-        history: The full snapshot list to write.
-        path: Path to the odds-history JSON file.
-
-    Returns:
-        None:
-    """
-    path.write_text(json.dumps(history, indent=2, ensure_ascii=False), encoding="utf-8")
-
-
 def _load_metrics(path: Path = METRICS_PATH) -> list[dict]:
     """
     Load the training-metrics history from disk, or return an empty list if absent/corrupt.
@@ -132,31 +98,6 @@ def _load_metrics(path: Path = METRICS_PATH) -> list[dict]:
     except (json.JSONDecodeError, OSError) as exc:
         print(f"training_metrics.json unreadable ({exc!r}) — returning empty list.")
         return []
-
-
-def _record_snapshot(predictions: dict, history: list[dict]) -> list[dict]:
-    """
-    Append a deduplicated {generated_at, tournament_odds} snapshot if `predictions` is new.
-    
-    Compares the "generated_at" timestamp in the current predictions against the most recent
-    snapshot in history.
-
-    Args:
-        predictions: The freshly loaded predictions payload.
-        history: The current snapshot list (oldest first).
-
-    Returns:
-        list: `history` unchanged if nothing new; otherwise a new list with one snapshot appended.
-    """
-    new_ts = predictions.get("generated_at")
-    
-    # Return the same history if no changes detected
-    if new_ts is None or (history and history[-1].get("generated_at") == new_ts):
-        return history
-    
-    # Create and return new snapshot
-    snapshot = {"generated_at": new_ts, "tournament_odds": predictions["tournament_odds"]}
-    return history + [snapshot]
 
 
 # ---------------------------------------------------------------------------
@@ -185,13 +126,13 @@ async def lifespan(app: FastAPI):
     print("Loading model and predictions at startup...")
     _model = model.load_model(MODEL_PATH)
     _predictions = _load_predictions(PREDICTIONS_PATH)
-    _history = _load_history(HISTORY_PATH)
+    _history = history.load_history(HISTORY_PATH)
     _metrics = _load_metrics(METRICS_PATH)
 
-    updated = _record_snapshot(_predictions, _history)
+    updated = history.record_snapshot(_predictions, _history)
     if updated is not _history:
         _history = updated
-        _save_history(_history, HISTORY_PATH)
+        history.save_history(_history, HISTORY_PATH)
         print(f"odds_history.json updated — now {len(_history)} snapshot(s).")
 
     print("Startup complete — model and predictions loaded once.")
@@ -320,10 +261,10 @@ def run_retrain_job() -> None:
         _predictions = _load_predictions(PREDICTIONS_PATH)
         _metrics = _load_metrics(METRICS_PATH)
 
-        updated = _record_snapshot(_predictions, _history)
+        updated = history.record_snapshot(_predictions, _history)
         if updated is not _history:
             _history = updated
-            _save_history(_history, HISTORY_PATH)
+            history.save_history(_history, HISTORY_PATH)
 
         print("Retrain complete — reloaded model, predictions, history, metrics.")
         
