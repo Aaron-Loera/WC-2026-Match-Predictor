@@ -20,12 +20,14 @@ from src.features import (
     _add_wc_experience,
 )
 from src.model import load_model, predict_proba
+import src.history as history
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
 PREDICTIONS_PATH = Path("predictions.json")
+HISTORY_PATH = Path("odds_history.json")
 N_SIMULATIONS = 10_000
 _CACHE_DATE = datetime(2026, 6, 11)  # feature lookback cutoff — tournament start
 
@@ -576,6 +578,39 @@ def export_predictions(output_path: Path | str=PREDICTIONS_PATH) -> None:
     print(f"Predictions written to {output_path}")
 
 
+def update_history(
+    predictions_path: Path | str=PREDICTIONS_PATH,
+    history_path: Path | str=HISTORY_PATH,
+) -> None:
+    """
+    Append a deduplicated odds snapshot from `predictions.json` to `odds_history.json`.
+
+    Reads the freshly exported predictions payload, compares its "generated_at" timestamp
+    against the most recent entry in `odds_history.json`, and appends a new
+    {generated_at, tournament_odds} snapshot if it's new. No operating takes place if the
+    timestamp already matches the latest history entry.
+
+    Args:
+        predictions_path: Path to the predictions JSON file to read from.
+        history_path: Path to the odds-history JSON file to update.
+
+    Returns:
+        None:
+    """
+    predictions_path = Path(predictions_path)
+    history_path = Path(history_path)
+
+    predictions = json.loads(predictions_path.read_text(encoding="utf-8"))
+    current = history.load_history(history_path)
+    updated = history.record_snapshot(predictions, current)
+
+    if updated is not current:
+        history.save_history(updated, history_path)
+        print(f"odds_history.json updated — now {len(updated)} snapshot(s).")
+    else:
+        print("odds_history.json unchanged — snapshot already recorded.")
+
+
 # ---------------------------------------------------------------------------
 # Private Helpers: Bracket Construction
 # ---------------------------------------------------------------------------
@@ -646,6 +681,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run WC2026 Monte Carlo simulator.")
     parser.add_argument("--simulate", action="store_true", help="Run simulation and print top-10 odds")
     parser.add_argument("--export", action="store_true", help="Write predictions.json (requires --simulate)")
+    parser.add_argument("--update-history", action="store_true",
+                         help="Append a snapshot to odds_history.json from predictions.json (run after --export)")
     args = parser.parse_args()
 
     # Run the complete pipeline
@@ -657,5 +694,8 @@ if __name__ == "__main__":
         print("\n--- Top-10 Tournament Win Probabilities ---")
         for team, p in sorted(odds.items(), key=lambda x: -x[1])[:10]:
             print(f"  {team:<30} {p:.3f}")
-    else:
+    elif not args.update_history:
         parser.print_help()
+
+    if args.update_history:
+        update_history()
