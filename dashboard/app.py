@@ -89,6 +89,60 @@ TEAM_CONFED: dict[str, str] = {
     "Uzbekistan": "AFC", "New Zealand": "OFC",
 }
 
+# (primary, secondary) hex colors drawn from each nation's flag.
+# Primary = most visually distinctive element; secondary used when primary
+# clashes with another selected team's already-assigned color.
+TEAM_COLORS: dict[str, tuple[str, str]] = {
+    "Argentina":            ("#74ACDF", "#F6B40E"),
+    "Algeria":              ("#006233", "#D21034"),
+    "Australia":            ("#002B7F", "#FF0000"),
+    "Austria":              ("#ED2939", "#FFD700"),
+    "Belgium":              ("#FAE042", "#EF3340"),
+    "Bosnia and Herzegovina": ("#002395", "#FCCA00"),
+    "Brazil":               ("#009C3B", "#FFDF00"),
+    "Canada":               ("#FF0000", "#A52A2A"),
+    "Cape Verde":           ("#003893", "#CF2027"),
+    "Colombia":             ("#FCD116", "#003087"),
+    "Congo DR":             ("#007FFF", "#F7D618"),
+    "Croatia":              ("#FF0000", "#003DA5"),
+    "Czechia":              ("#D7141A", "#11457E"),
+    "Curaçao":              ("#002B7F", "#F9E814"),
+    "Ecuador":              ("#FFD100", "#0072CE"),
+    "Egypt":                ("#CE1126", "#C09300"),
+    "England":              ("#CF142B", "#012169"),
+    "France":               ("#002395", "#ED2939"),
+    "Germany":              ("#FFCE00", "#DD0000"),
+    "Ghana":                ("#006B3F", "#FCD116"),
+    "Haiti":                ("#00209F", "#D21034"),
+    "IR Iran":              ("#239F40", "#DA0000"),
+    "Iraq":                 ("#CE1126", "#007A3D"),
+    "Ivory Coast":          ("#F77F00", "#009A44"),
+    "Japan":                ("#BC002D", "#003087"),
+    "Jordan":               ("#007A3D", "#CE1126"),
+    "Korea Republic":       ("#003478", "#CD2E3A"),
+    "Mexico":               ("#006847", "#CE1126"),
+    "Morocco":              ("#C1272D", "#006233"),
+    "Netherlands":          ("#FF6600", "#003082"),
+    "New Zealand":          ("#CC0000", "#00247D"),
+    "Norway":               ("#EF2B2D", "#003087"),
+    "Panama":               ("#DB0000", "#0038A8"),
+    "Paraguay":             ("#D52B1E", "#0038A8"),
+    "Portugal":             ("#006600", "#FF0000"),
+    "Qatar":                ("#8D1B3D", "#FFFFFF"),
+    "Saudi Arabia":         ("#006C35", "#C8A951"),
+    "Scotland":             ("#003078", "#C60C30"),
+    "Senegal":              ("#00853F", "#FDEF42"),
+    "South Africa":         ("#007A4D", "#FFB81C"),
+    "Spain":                ("#C60B1E", "#FFC400"),
+    "Sweden":               ("#006AA7", "#FECC02"),
+    "Switzerland":          ("#FF0000", "#003082"),
+    "Tunisia":              ("#E70013", "#C09300"),
+    "Turkey":               ("#E30A17", "#C09300"),
+    "Uruguay":              ("#75AADB", "#FFFFFF"),
+    "USA":                  ("#B22234", "#002868"),
+    "Uzbekistan":           ("#1EB53A", "#009FCA"),
+}
+
 GROUPS: dict[str, list[str]] = {
     "A": ["Mexico", "South Africa", "Korea Republic", "Czechia"],
     "B": ["Canada", "Bosnia and Herzegovina", "Qatar", "Switzerland"],
@@ -453,7 +507,10 @@ def render_tournament_odds() -> None:
         unsafe_allow_html=True,
     )
 
-    shown = df.head(16)
+    if "show_all_odds" not in st.session_state:
+        st.session_state.show_all_odds = False
+
+    shown = df if st.session_state.show_all_odds else df.head(16)
     max_p = float(df["p"].max()) or 1.0
     rows: list[str] = []
     for i, r in shown.iterrows():
@@ -461,6 +518,12 @@ def render_tournament_odds() -> None:
             rows.append(
                 '<div class="wc-divider">'
                 '<span class="ln"></span><span>Chasing pack</span><span class="ln"></span>'
+                '</div>'
+            )
+        elif i == 16 and st.session_state.show_all_odds:
+            rows.append(
+                '<div class="wc-divider">'
+                '<span class="ln"></span><span>Rest of the field</span><span class="ln"></span>'
                 '</div>'
             )
         gold  = i < 8
@@ -481,8 +544,17 @@ def render_tournament_odds() -> None:
         )
 
     st.markdown("".join(rows), unsafe_allow_html=True)
+
+    _, btn_col, _ = st.columns([2, 1, 2])
+    with btn_col:
+        btn_label = "Show less" if st.session_state.show_all_odds else f"View all {len(df)}"
+        if st.button(btn_label, key="toggle_all_odds", use_container_width=True):
+            st.session_state.show_all_odds = not st.session_state.show_all_odds
+            st.rerun()
+
+    showing_label = "all" if st.session_state.show_all_odds else f"top {len(shown)}"
     st.markdown(
-        f'<div class="wc-foot">Showing top {len(shown)} of {len(df)} teams &middot; '
+        f'<div class="wc-foot">Showing {showing_label} of {len(df)} teams &middot; '
         f'generated {gen_full} &middot; model retrains nightly.</div>',
         unsafe_allow_html=True,
     )
@@ -506,14 +578,26 @@ def render_match_predictor() -> None:
         unsafe_allow_html=True,
     )
 
-    col1, col2 = st.columns(2)
-    home = col1.selectbox("Home team", sorted(df["home"].unique()))
-    away = col2.selectbox(
-        "Away team", sorted(df.loc[df["home"] == home, "away"].unique())
-    )
+    teams = sorted(set(df["home"]) | set(df["away"]))
 
-    match = df[(df["home"] == home) & (df["away"] == away)].iloc[0]
-    ph, pd_, pa = float(match["p_home_win"]), float(match["p_draw"]), float(match["p_away_win"])
+    col1, col2 = st.columns(2)
+    home = col1.selectbox("Home team", teams)
+
+    opponents = sorted(
+        set(df.loc[df["home"] == home, "away"])
+        | set(df.loc[df["away"] == home, "home"])
+    )
+    away = col2.selectbox("Away team", opponents)
+
+    fixture = df[
+        ((df["home"] == home) & (df["away"] == away))
+        | ((df["home"] == away) & (df["away"] == home))
+    ].iloc[0]
+
+    if fixture["home"] == home:
+        ph, pd_, pa = float(fixture["p_home_win"]), float(fixture["p_draw"]), float(fixture["p_away_win"])
+    else:
+        ph, pd_, pa = float(fixture["p_away_win"]), float(fixture["p_draw"]), float(fixture["p_home_win"])
 
     st.markdown(
         f'<div class="wc-context">'
@@ -580,7 +664,8 @@ def render_group_standings() -> None:
     st.markdown(
         '<p class="wc-eyebrow">12 groups &middot; 48 teams &middot; '
         'ranked by title probability. <svg width="8" height="8" viewBox="0 0 8 8" style="vertical-align:middle;">'
-        '<circle cx="4" cy="4" r="3" fill="#F2A93B"/></svg> = predicted to advance.</p>',
+        '<circle cx="4" cy="4" r="3" fill="#F2A93B"/></svg> = predicted to advance &middot; '
+        '<span style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;">—</span> = eliminated.</p>',
         unsafe_allow_html=True,
     )
 
@@ -623,6 +708,31 @@ def render_group_standings() -> None:
 # ---------------------------------------------------------------------------
 # Page 4 — Odds Tracker
 # ---------------------------------------------------------------------------
+
+def _hex_to_rgb(h: str) -> tuple[int, int, int]:
+    h = h.lstrip("#")
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+
+
+def _color_distance(a: str, b: str) -> float:
+    r1, g1, b1 = _hex_to_rgb(a)
+    r2, g2, b2 = _hex_to_rgb(b)
+    return ((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2) ** 0.5
+
+
+def resolve_chart_colors(teams: list[str], odds: dict[str, float]) -> dict[str, str]:
+    """Team → hex color using flag primaries; lower-odds team gets secondary when colors clash."""
+    _THRESHOLD = 80
+    sorted_teams = sorted(teams, key=lambda t: odds.get(t, 0), reverse=True)
+    assigned: dict[str, str] = {}
+    for team in sorted_teams:
+        primary, secondary = TEAM_COLORS.get(team, ("#7FB83E", "#F2A93B"))
+        chosen = primary
+        if any(_color_distance(primary, c) < _THRESHOLD for c in assigned.values()):
+            chosen = secondary
+        assigned[team] = chosen
+    return assigned
+
 
 def _compute_movers(history: list[dict]) -> tuple[tuple, tuple] | None:
     first, last = history[0]["tournament_odds"], history[-1]["tournament_odds"]
@@ -689,6 +799,8 @@ def render_odds_tracker() -> None:
         st.info("Select at least one team to plot.")
         return
 
+    color_map = resolve_chart_colors(teams, latest)
+
     chips = "".join(
         f'<span class="wc-chip">{flag_img(t, 18)} {html.escape(t)}'
         f' <span style="color:{TXT3};">{latest.get(t, 0) * 100:.1f}%</span></span>'
@@ -706,7 +818,8 @@ def render_odds_tracker() -> None:
             y=alt.Y("p:Q", title="Title probability",
                     axis=alt.Axis(format="%", **axis_kw)),
             color=alt.Color("team:N", title="Team",
-                            scale=alt.Scale(scheme="tableau10"),
+                            scale=alt.Scale(domain=list(color_map.keys()),
+                                            range=list(color_map.values())),
                             legend=alt.Legend(labelColor=TXT, titleColor=TXT2)),
             tooltip=[
                 "team",
