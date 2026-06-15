@@ -29,7 +29,7 @@ import src.history as history
 PREDICTIONS_PATH = Path("predictions.json")
 HISTORY_PATH = Path("odds_history.json")
 N_SIMULATIONS = 10_000
-_CACHE_DATE = datetime(2026, 6, 11)  # feature lookback cutoff — tournament start
+_TOURNAMENT_START = datetime(2026, 6, 11)  # feature lookback cutoff floor — tournament start
 
 # WC2026 groups from the official draw
 WC2026_GROUPS: dict[str, list[str]] = {
@@ -78,43 +78,46 @@ _locked_results: dict[tuple[str, str], tuple[int, int]] = {}
 # Private Helpers: Data Preparation
 # ---------------------------------------------------------------------------
 
-def _load_and_prepare() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, dict], dict]:
+def _load_and_prepare() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, dict], dict, pd.DataFrame]:
     """
     Load raw data and extract per-team statistics and head-to-head records for probability computation.
-    
+
     Fetches historical matches (25 years), FIFA rankings, and any completed WC2026 results. Merges
     completed WC2026 matches into the historical pool to ensure rollings stats are reflect up-to-date
     team form. Constructs a normalized H2H win-count lookup over the prior 10 years.
-    
+
     Args:
         None:
-        
+
     Returns:
-        tuple: A 4-tuple containing:
+        tuple: A 5-tuple containing:
             - prior (pd.DataFrame): All completed matches before tournament start.
             - rankings (pd.DataFrame): Team rankings.
             - team_stats (dict): Per-team rollings stats keys by team name.
             - h2h_lookup (dict): Head-to-head record.
-    
+            - completed (pd.DataFrame): Completed WC2026 results (home/away teams + scores).
+
     Load raw data once and build per-team stats + H2H lookup for batch feature construction.
     """
     # Fetch historical and current data
     matches = data.fetch_historical_matches(n_years=25)
     rankings = data.fetch_fifa_rankings()
     wc = data.fetch_wc_results()
+    completed = wc.dropna(subset=["home_score", "away_score"])
 
     # Merge completed WC2026 results into historical pool
-    if not wc.empty:
-        wc_compat = wc[["date", "home_team", "away_team", "home_score", "away_score"]].copy()
+    if not completed.empty:
+        wc_compat = completed[["date", "home_team", "away_team", "home_score", "away_score"]].copy()
         wc_compat["tournament"] = "FIFA World Cup"
         wc_compat["neutral"] = False
-        completed = wc_compat.dropna(subset=["home_score", "away_score"])
-        matches = pd.concat([matches, completed], ignore_index=True).drop_duplicates(
+        wc_compat["date"] = wc_compat["date"].dt.normalize() # normalize to day precision
+        matches = pd.concat([matches, wc_compat], ignore_index=True).drop_duplicates(
             subset=["date", "home_team", "away_team"]
         )
 
-    # Enrich frame with rolling stats
-    prior = matches[matches["date"] < pd.Timestamp(_CACHE_DATE)].copy()
+    # Enrich frame with rolling stats (cutoff advances with the tournament)
+    cache_date = max(_TOURNAMENT_START, datetime.now())
+    prior = matches[matches["date"] < pd.Timestamp(cache_date)].copy()
     history = _build_team_history(prior)
     history = _add_rolling_stats(history)
     history = _add_wc_experience(history)
@@ -132,7 +135,7 @@ def _load_and_prepare() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, dict], di
             team_stats[team] = {c: float(last.get(c, float("nan"))) for c in stat_cols}
 
     # Build H2H win-count lookup over the last 10 years
-    cutoff = pd.Timestamp(_CACHE_DATE) - pd.Timedelta(days=365 * 10)
+    cutoff = pd.Timestamp(cache_date) - pd.Timedelta(days=365 * 10)
     h2h_df = prior[prior["date"] >= cutoff].dropna(subset=["home_score", "away_score"])
     h2h_raw: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0])
     for _, row in h2h_df.iterrows():
@@ -146,7 +149,7 @@ def _load_and_prepare() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, dict], di
         h2h_raw[key][1] += 1
     h2h_lookup = {k: (v[0], v[1]) for k, v in h2h_raw.items()}
 
-    return prior, rankings, team_stats, h2h_lookup
+    return prior, rankings, team_stats, h2h_lookup, completed
 
 
 def _build_proba_cache(
@@ -264,7 +267,15 @@ def _prepare_simulation() -> tuple[dict[tuple[str, str], np.ndarray], dict[str, 
     """
     # Load model and data
     model = load_model()
-    prior, rankings, team_stats, h2h_lookup = _load_and_prepare()
+    prior, rankings, team_stats, h2h_lookup, completed = _load_and_prepare()
+
+    # Lock in completed WC2026 results so the simulator uses real outcomes
+    _locked_results.clear()
+    for _, row in completed.iterrows():
+        lock_result(
+            str(row["home_team"]), str(row["away_team"]),
+            int(row["home_score"]), int(row["away_score"]),
+        )
 
     # Create FIFA rank lookup
     rank_lookup = {
@@ -290,6 +301,25 @@ def _prepare_simulation() -> tuple[dict[tuple[str, str], np.ndarray], dict[str, 
 # ---------------------------------------------------------------------------
 # Private Helpers: Simulation Logic
 # ---------------------------------------------------------------------------
+
+def _locked_proba(home: str, away: str) -> np.ndarray | None:
+    """
+    Return a deterministic [p_away, p_draw, p_home] array if (home, away) has a
+    confirmed real-world result via `lock_result()`, else None.
+    """
+    if (home, away) in _locked_results:
+        hs, as_ = _locked_results[(home, away)]
+    elif (away, home) in _locked_results:
+        as_, hs = _locked_results[(away, home)]
+    else:
+        return None
+
+    if hs > as_:
+        return np.array([0.0, 0.0, 1.0])
+    if hs < as_:
+        return np.array([1.0, 0.0, 0.0])
+    return np.array([0.0, 1.0, 0.0])
+
 
 def _get_outcome(
     home: str,
@@ -554,7 +584,9 @@ def export_predictions(output_path: Path | str=PREDICTIONS_PATH) -> None:
     match_predictions = []
     for teams in WC2026_GROUPS.values():
         for home, away in itertools.combinations(teams, 2):
-            p = proba_cache.get((home, away), np.full(3, 1 / 3))
+            p = _locked_proba(home, away)
+            if p is None:
+                p = proba_cache.get((home, away), np.full(3, 1 / 3))
             match_predictions.append({
                 "home": home,
                 "away": away,

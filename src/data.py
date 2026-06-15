@@ -5,7 +5,6 @@ import requests
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, timedelta
-from bs4 import BeautifulSoup 
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -76,7 +75,11 @@ _CONFEDERATION: dict[str, str] = {
     "SB": "OFC", "TO": "OFC", "TV": "OFC", "VU": "OFC",
 }
 _MATCHES_URL = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
-_WC2026_URL = "https://www.fifa.com/fifaplus/en/tournaments/mens/worldcup/canadamexicousa2026/"
+
+_WC2026_API_URL = (
+    "https://api.fifa.com/api/v3/calendar/matches"
+    "?idSeason=285023&idCompetition=17&count=200"
+)
 
 _WC_RESULTS_SCHEMA = {
     "date": "datetime64[ns]",
@@ -246,16 +249,16 @@ def fetch_historical_matches(n_years: int) -> pd.DataFrame:
 
 def fetch_wc_results() -> pd.DataFrame:
     """
-    Scrape completed FIFA World Cup 2026 match results from the FIFA website.
-    
-    Returns a cached copy if it's not stale. If the HTTP request fails or the tournament has
-    not yet started, an empty DataFrame is returned.
-    
+    Fetch completed FIFA World Cup 2026 match results from FIFA's v3 calendar API.
+
+    Returns a cached copy if it's not stale. If the HTTP request fails or no matches
+    have finished yet, an empty DataFrame is returned.
+
     Args:
         None:
-        
+
     Returns:
-        pd.DataFrame: A DataFrame with columns [data, home_team, away_team, home_score, away_score, stage, match_id].
+        pd.DataFrame: A DataFrame with columns [date, home_team, away_team, home_score, away_score, stage, match_id].
     """
     cache = RAW_DIR / "wc2026_results.parquet"
     max_age = WC_STALENESS_HOURS * 3600
@@ -269,49 +272,35 @@ def fetch_wc_results() -> pd.DataFrame:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/124.0.0.0 Safari/537.36"
-        )
+        ),
+        "Accept": "application/json",
     }
 
     try:
-        # Attempt to fetch match results
-        response = requests.get(_WC2026_URL, headers=headers, timeout=30)
+        # Attempt to fetch the match calendar
+        response = requests.get(_WC2026_API_URL, headers=headers, timeout=30)
         response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")     
-    except requests.RequestException:
-        # Return empty frame if scrape fails (tournament may not be live yet)
+        payload = response.json()
+    except (requests.RequestException, ValueError):
+        # Return empty frame if the request/JSON decode fails
         return _empty_wc_df()
 
     rows: list[dict] = []
-    
-    # 3 CSS-selector strategy targeting completed match card elements
-    match_cards = soup.select("[class*='match'][class*='completed']") or \
-                  soup.select("article[data-matchstatus='FINISHED']") or \
-                  soup.select("[data-match-status='FINISHED']")
 
-    for card in match_cards:
+    for m in payload.get("Results", []):
+        if m.get("MatchStatus") != 0:  # 0 = finished
+            continue
         try:
-            # Attempt to parse each card
-            home = card.select_one("[class*='homeTeam'] [class*='name']")
-            away = card.select_one("[class*='awayTeam'] [class*='name']")
-            home_score = card.select_one("[class*='homeScore']") or card.select_one("[class*='score']:first-child")
-            away_score = card.select_one("[class*='awayScore']") or card.select_one("[class*='score']:last-child")
-            date_el = card.select_one("[class*='date']") or card.select_one("time")
-            stage_el = card.select_one("[class*='stage']") or card.select_one("[class*='round']")
-            match_id = card.get("data-match-id") or card.get("id") or ""
-
-            if not (home and away and home_score and away_score):
-                continue
-
             rows.append({
-                "date": pd.to_datetime(date_el.get_text(strip=True) if date_el else "", errors="coerce"),
-                "home_team": home.get_text(strip=True),
-                "away_team": away.get_text(strip=True),
-                "home_score": int(home_score.get_text(strip=True)),
-                "away_score": int(away_score.get_text(strip=True)),
-                "stage": stage_el.get_text(strip=True) if stage_el else "",
-                "match_id": str(match_id),
-            })   
-        except (ValueError, AttributeError):
+                "date": pd.to_datetime(m["Date"], errors="coerce", utc=True).tz_localize(None),
+                "home_team": m["Home"]["TeamName"][0]["Description"],
+                "away_team": m["Away"]["TeamName"][0]["Description"],
+                "home_score": m["HomeTeamScore"],
+                "away_score": m["AwayTeamScore"],
+                "stage": m["StageName"][0]["Description"] if m.get("StageName") else "",
+                "match_id": str(m.get("IdMatch", "")),
+            })
+        except (KeyError, IndexError, TypeError):
             continue
 
     if not rows:
