@@ -29,7 +29,7 @@ import src.history as history
 PREDICTIONS_PATH = Path("predictions.json")
 HISTORY_PATH = Path("odds_history.json")
 N_SIMULATIONS = 10_000
-_CACHE_DATE = datetime(2026, 6, 11)  # feature lookback cutoff — tournament start
+_TOURNAMENT_START = datetime(2026, 6, 11)  # feature lookback cutoff floor — tournament start
 
 # WC2026 groups from the official draw
 WC2026_GROUPS: dict[str, list[str]] = {
@@ -110,12 +110,14 @@ def _load_and_prepare() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, dict], di
         wc_compat = completed[["date", "home_team", "away_team", "home_score", "away_score"]].copy()
         wc_compat["tournament"] = "FIFA World Cup"
         wc_compat["neutral"] = False
+        wc_compat["date"] = wc_compat["date"].dt.normalize() # normalize to day precision
         matches = pd.concat([matches, wc_compat], ignore_index=True).drop_duplicates(
             subset=["date", "home_team", "away_team"]
         )
 
-    # Enrich frame with rolling stats
-    prior = matches[matches["date"] < pd.Timestamp(_CACHE_DATE)].copy()
+    # Enrich frame with rolling stats (cutoff advances with the tournament)
+    cache_date = max(_TOURNAMENT_START, datetime.now())
+    prior = matches[matches["date"] < pd.Timestamp(cache_date)].copy()
     history = _build_team_history(prior)
     history = _add_rolling_stats(history)
     history = _add_wc_experience(history)
@@ -133,7 +135,7 @@ def _load_and_prepare() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, dict], di
             team_stats[team] = {c: float(last.get(c, float("nan"))) for c in stat_cols}
 
     # Build H2H win-count lookup over the last 10 years
-    cutoff = pd.Timestamp(_CACHE_DATE) - pd.Timedelta(days=365 * 10)
+    cutoff = pd.Timestamp(cache_date) - pd.Timedelta(days=365 * 10)
     h2h_df = prior[prior["date"] >= cutoff].dropna(subset=["home_score", "away_score"])
     h2h_raw: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0])
     for _, row in h2h_df.iterrows():
