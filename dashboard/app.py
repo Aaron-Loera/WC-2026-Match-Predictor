@@ -11,37 +11,36 @@ Theme: Barlow Condensed for display text · dark charcoal + pitch-green + gold.
 All CSS lives in dashboard/theme.py; this file owns layout and data logic only.
 """
 from __future__ import annotations
-
 import datetime as dt
 import html
 import os
 from pathlib import Path
-
 import altair as alt
 import pandas as pd
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
-
 from theme import inject_theme
 
 load_dotenv()
 
-API_BASE_URL        = os.getenv("API_BASE_URL", "http://localhost:8000")
-CACHE_TTL_SECONDS   = int(os.getenv("DASHBOARD_CACHE_TTL", "3600"))
-REQUEST_TIMEOUT     = 60
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+CACHE_TTL_SECONDS = int(os.getenv("DASHBOARD_CACHE_TTL", "3600"))
+REQUEST_TIMEOUT = 60
 
+# Tournament calendar
 KICKOFF_DATE = dt.date(2026, 6, 11)
-KICKOFF_DT   = dt.datetime(2026, 6, 11, 18, 0, 0, tzinfo=dt.timezone.utc)
+KICKOFF_DT = dt.datetime(2026, 6, 11, 18, 0, 0, tzinfo=dt.timezone.utc)
 
-# Palette — single source of truth for inline HTML/f-strings
+# Color palette
 BG       = "#1B1D1F"; CARD     = "#26292C"; CARD_BD  = "#34383C"; TRACK = "#303438"
 TXT      = "#E8EAEC"; TXT2     = "#9AA0A6"; TXT3     = "#7A8087"
 GREEN    = "#7FB83E"; GREEN_TXT = "#9FD45B"; GREEN_TINT = "#2A3A18"
 GOLD     = "#F2A93B"; GOLD_TXT  = "#F2B85C"; GREY     = "#80868C"; RED = "#E5705B"
 STATUS_OK = "#3BD68B"; STATUS_WARN = "#F2A93B"; STATUS_ERR = "#E5705B"
 
+# Page icon
 _ICON_PATH = Path(__file__).resolve().parent / "assets" / "ball_icon.svg"
 PAGE_ICON  = str(_ICON_PATH) if _ICON_PATH.exists() else "⚽"
 
@@ -53,7 +52,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Team reference data
+# Team Reference Data
 # ---------------------------------------------------------------------------
 
 TEAM_ISO: dict[str, str] = {
@@ -89,9 +88,7 @@ TEAM_CONFED: dict[str, str] = {
     "Uzbekistan": "AFC", "New Zealand": "OFC",
 }
 
-# (primary, secondary) hex colors drawn from each nation's flag.
-# Primary = most visually distinctive element; secondary used when primary
-# clashes with another selected team's already-assigned color.
+# Primary and secondary hex colors drawn from each nation's flag
 TEAM_COLORS: dict[str, tuple[str, str]] = {
     "Argentina":            ("#74ACDF", "#F6B40E"),
     "Algeria":              ("#006233", "#D21034"),
@@ -159,11 +156,11 @@ GROUPS: dict[str, list[str]] = {
 }
 
 # ---------------------------------------------------------------------------
-# HTML helpers
+# HTML Helpers
 # ---------------------------------------------------------------------------
 
 def ball_svg(size: int = 22) -> str:
-    """Inline green soccer-ball brand mark as SVG."""
+    """Inline green soccer-ball brand mark as a self-contained SVG string."""
     return (
         f'<svg width="{size}" height="{size}" viewBox="0 0 582 582" '
         'xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;flex:none;">'
@@ -210,7 +207,7 @@ def trend_down_svg(size: int = 16) -> str:
 
 
 def flag_img(team: str, height: int = 22) -> str:
-    """Return an <img> tag for a team's flag, or a blank placeholder if unknown."""
+    """Return an "img" tag for a team's flag, or a blank placeholder if unknown."""
     iso = TEAM_ISO.get(team)
     width = round(height * 4 / 3)
     style = (
@@ -223,15 +220,28 @@ def flag_img(team: str, height: int = 22) -> str:
 
 
 def confed(team: str) -> str:
-    """Return a team's confederation acronym, or '' if unknown."""
+    """Return a team's confederation acronym, or an empty string if unknown."""
     return TEAM_CONFED.get(team, "")
 
 
 # ---------------------------------------------------------------------------
-# API client
+# API Client
 # ---------------------------------------------------------------------------
 
 def _get(endpoint: str) -> dict | list:
+    """
+    Fetch JSON data from the FastAPI backend.
+    
+    Constructs the full API URL, sends a GET request with a timeout, validates the HTTP
+    response, and returns the parsed JSON. Raises and exception fi the request times
+    out or the API returns a 4xx/5xx status.
+    
+    Args:
+        endpoint: The API path relative to `API_BASE_URL` (e.g. "/predictions/matches")
+        
+    Returns:
+        dict | list: Parsed JSON response from the API.
+    """
     r = requests.get(f"{API_BASE_URL}{endpoint}", timeout=REQUEST_TIMEOUT)
     r.raise_for_status()
     return r.json()
@@ -262,7 +272,7 @@ def fetch_health() -> dict:
 
 
 def _format_generated(raw: str | None) -> str:
-    """Render an ISO timestamp as 'Jun 7, 2026 20:33 UTC'."""
+    """Render an ISO timestamp as `Jun 7, 2026 20:33 UTC`."""
     if not raw:
         return "unknown"
     try:
@@ -273,24 +283,42 @@ def _format_generated(raw: str | None) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Shared chrome
+# Shared Chrome
 # ---------------------------------------------------------------------------
 
 def render_header() -> None:
-    """Brand row + API health dot (no sidebar)."""
+    """    
+    Display the dashboard header with an API health status.
+    
+    Fetches the API's health endpoint to determine operational status and renders a fixed
+    header row with the WC 2026 branding, a colored status dot, and a human-readable status
+    label. When available, also displays the timestamp of the latest prediction generation.
+    
+    Args:
+        None:
+        
+    Returns:
+        None:
+    """
     dot, label, ts = STATUS_WARN, "API status unknown", ""
+    
     try:
         health = fetch_health()
-        if (health.get("status") == "ok"
-                and health.get("model_loaded")
-                and health.get("predictions_loaded")):
-            dot, label = STATUS_OK, "API live"
+        # Check if API is fully healthy
+        if (
+            health.get("status") == "ok"
+            and health.get("model_loaded")
+            and health.get("predictions_loaded")):
+            dot, label = STATUS_OK, "API Live"
         else:
-            dot, label = STATUS_WARN, "API degraded"
-        ts = f" · predictions {_format_generated(health.get('generated_at'))}"
+            dot, label = STATUS_WARN, "API Degraded"
+        # Extract "generated_at" timestamp
+        ts = f" · Predictions {_format_generated(health.get('generated_at'))}"
+        
     except requests.RequestException:
-        dot, label = STATUS_ERR, "API unreachable"
+        dot, label = STATUS_ERR, "API Unreachable"
 
+    # Render custom HTML header row
     ts_html = f'<span class="wc-api-ts">{html.escape(ts)}</span>' if ts else ""
     st.markdown(
         f'<div class="wc-header">'
@@ -408,14 +436,30 @@ def _banner_component_html(ticker: str) -> str:
 
 
 def render_banner() -> None:
-    """Countdown banner with live JS tick, pitch-stripe texture, and title-odds ticker."""
+    """    
+    Display a live countdown banner with top-8 tournament favorites and animated ticker.
+    
+    Fetches tournament odds from the API and renders an animated banner featuring: (1) a 
+    countdown timer ticking down to World Cup kickoff, (2) a seamlessly scrolling ticker
+    of the top 8 teams by title probability.
+    
+    Args:
+        None:
+        
+    Returns:
+        None:
+    """
+    # Attempt to fetch tournament odds
     try:
         payload = fetch_tournament_odds()
         odds: dict[str, float] = payload["tournament_odds"]
     except requests.RequestException:
         odds = {}
 
+    # Extract top 8 teams
     top8 = sorted(odds.items(), key=lambda kv: kv[1], reverse=True)[:8]
+    
+    # Construct an HTML string with all 8 teams
     ticker = "".join(
         f'<span class="wc-ticker-item">{flag_img(t, 16)}'
         f' <strong>{html.escape(t)}</strong>'
@@ -423,6 +467,7 @@ def render_banner() -> None:
         for t, p in top8
     ) * 2
 
+    # Wrap ticker in self-contained HTML page
     components.html(_banner_component_html(ticker), height=120, scrolling=False)
 
 
@@ -431,20 +476,34 @@ def render_banner() -> None:
 # ---------------------------------------------------------------------------
 
 def render_tournament_odds() -> None:
-    """KPI strip + pitch-divider + animated title-race bars (top 16)."""
+    """
+    Render the tournament odds page: KPI strip, ranked bars, and team breakdown.
+    
+    Fetches the latest tournament probabilities from the API and displays them as a
+    professional data-journalism-style page. Defaults to showing the top 16 teams, however,
+    users can toggle to view all 48 teams.
+    
+    Args:
+        None:
+        
+    Returns:
+        None:
+    """
+    # Attempt to fetch tournament odds
     try:
         payload = fetch_tournament_odds()
     except requests.RequestException as exc:
         st.error(f"Couldn't reach the prediction API at {API_BASE_URL}: {exc}")
         return
 
+    # Extract odds into a DataFrame
     odds = payload["tournament_odds"]
     df = (
         pd.DataFrame(odds.items(), columns=["team", "p"])
         .sort_values("p", ascending=False)
         .reset_index(drop=True)
     )
-    n_sims   = payload.get("n_simulations", 0)
+    n_sims = payload.get("n_simulations", 0)
     gen_full = _format_generated(payload.get("generated_at"))
 
     st.markdown(
@@ -453,11 +512,12 @@ def render_tournament_odds() -> None:
         unsafe_allow_html=True,
     )
 
-    fav      = df.iloc[0]
+    fav = df.iloc[0]
     days_left = (KICKOFF_DATE - dt.date.today()).days
-    ko_val   = ("Underway" if days_left < 0
-                else ("Today" if days_left == 0 else f"{days_left} days"))
+    ko_val = ("Underway" if days_left < 0
+             else ("Today" if days_left == 0 else f"{days_left} days"))
 
+    # 4-column KPI strip
     st.markdown(
         f"""
         <div class="wc-kpis">
@@ -469,17 +529,17 @@ def render_tournament_odds() -> None:
           <div class="wc-kpi">
             <div class="lbl">Simulations</div>
             <div class="val">{n_sims:,}</div>
-            <div class="sub">Monte Carlo runs</div>
+            <div class="sub">Monte Carlo Runs</div>
           </div>
           <div class="wc-kpi">
             <div class="lbl">Field</div>
             <div class="val">{len(df)}</div>
-            <div class="sub">teams qualified</div>
+            <div class="sub">Teams Qualified</div>
           </div>
           <div class="wc-kpi">
             <div class="lbl">Kick-off</div>
             <div class="val" style="font-size:36px;">{html.escape(ko_val)}</div>
-            <div class="sub">Jun 11, opener</div>
+            <div class="sub">Jun 11, Opener</div>
           </div>
         </div>
         """,
@@ -513,20 +573,22 @@ def render_tournament_odds() -> None:
     shown = df if st.session_state.show_all_odds else df.head(16)
     max_p = float(df["p"].max()) or 1.0
     rows: list[str] = []
+    
+    # Loop through each team
     for i, r in shown.iterrows():
         if i == 8:
             rows.append(
                 '<div class="wc-divider">'
-                '<span class="ln"></span><span>Chasing pack</span><span class="ln"></span>'
+                '<span class="ln"></span><span>Chasing Pack</span><span class="ln"></span>'
                 '</div>'
             )
         elif i == 16 and st.session_state.show_all_odds:
             rows.append(
                 '<div class="wc-divider">'
-                '<span class="ln"></span><span>Rest of the field</span><span class="ln"></span>'
+                '<span class="ln"></span><span>Rest of the Field</span><span class="ln"></span>'
                 '</div>'
             )
-        gold  = i < 8
+        gold = i < 8
         width = max(r["p"] / max_p * 100, 0.5)
         rows.append(
             f'<div class="wc-row">'
@@ -545,6 +607,7 @@ def render_tournament_odds() -> None:
 
     st.markdown("".join(rows), unsafe_allow_html=True)
 
+    # Create "Show all" button and functionality
     _, btn_col, _ = st.columns([2, 1, 2])
     with btn_col:
         btn_label = "Show less" if st.session_state.show_all_odds else f"View all {len(df)}"
@@ -552,10 +615,11 @@ def render_tournament_odds() -> None:
             st.session_state.show_all_odds = not st.session_state.show_all_odds
             st.rerun()
 
+    # Render footer
     showing_label = "all" if st.session_state.show_all_odds else f"top {len(shown)}"
     st.markdown(
         f'<div class="wc-foot">Showing {showing_label} of {len(df)} teams &middot; '
-        f'generated {gen_full} &middot; model retrains nightly.</div>',
+        f'Generated {gen_full} &middot; Model retrains nightly.</div>',
         unsafe_allow_html=True,
     )
 
@@ -709,29 +773,47 @@ def render_group_standings() -> None:
 # Page 4 — Odds Tracker
 # ---------------------------------------------------------------------------
 
+def team_colors(team: str) -> tuple[str, str]:
+    """Return a team's (primary, secondary) flag colors, falling back to the brand palette."""
+    return TEAM_COLORS.get(team, (GREEN, GOLD))
+
+
 def _hex_to_rgb(h: str) -> tuple[int, int, int]:
     h = h.lstrip("#")
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
 def _color_distance(a: str, b: str) -> float:
+    """Euclidean distance between two hex colors in RGB space (0–441)."""
     r1, g1, b1 = _hex_to_rgb(a)
     r2, g2, b2 = _hex_to_rgb(b)
     return ((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2) ** 0.5
 
 
-def resolve_chart_colors(teams: list[str], odds: dict[str, float]) -> dict[str, str]:
-    """Team → hex color using flag primaries; lower-odds team gets secondary when colors clash."""
+def resolve_track_styles(teams: list[str], odds: dict[str, float]) -> dict[str, dict]:
+    """
+    Assign each tracked team a line style for the odds chart.
+
+    Teams are processed by title odds (highest first). Each gets a solid primary-color
+    line by default; if its primary is too close to a color already on the chart, it
+    falls back to the two-color treatment (solid primary base + dashed secondary) so it
+    stays visually distinct from its look-alike.
+
+    Returns a per-team dict: {"mode": "solid"|"split", "primary": hex, "secondary": hex}.
+    """
     _THRESHOLD = 80
     sorted_teams = sorted(teams, key=lambda t: odds.get(t, 0), reverse=True)
-    assigned: dict[str, str] = {}
+    occupied: list[str] = []
+    styles: dict[str, dict] = {}
     for team in sorted_teams:
-        primary, secondary = TEAM_COLORS.get(team, ("#7FB83E", "#F2A93B"))
-        chosen = primary
-        if any(_color_distance(primary, c) < _THRESHOLD for c in assigned.values()):
-            chosen = secondary
-        assigned[team] = chosen
-    return assigned
+        primary, secondary = team_colors(team)
+        if any(_color_distance(primary, c) < _THRESHOLD for c in occupied):
+            styles[team] = {"mode": "split", "primary": primary, "secondary": secondary}
+            occupied.extend((primary, secondary))
+        else:
+            styles[team] = {"mode": "solid", "primary": primary, "secondary": secondary}
+            occupied.append(primary)
+    return styles
 
 
 def _compute_movers(history: list[dict]) -> tuple[tuple, tuple] | None:
@@ -799,34 +881,77 @@ def render_odds_tracker() -> None:
         st.info("Select at least one team to plot.")
         return
 
-    color_map = resolve_chart_colors(teams, latest)
+    # Higher-ranked teams get a solid primary line; teams whose primary clashes with a
+    # color already on the chart fall back to a two-tone (primary + dashed secondary)
+    # line so they stay distinct. The chips double as the legend, with a swatch that
+    # matches each team's rendering (single color vs. split).
+    styles      = resolve_track_styles(teams, latest)
+    split_teams = [t for t, s in styles.items() if s["mode"] == "split"]
+
+    def _swatch(team: str) -> str:
+        s = styles[team]
+        bg = (f'linear-gradient(135deg,{s["primary"]} 0 50%,{s["secondary"]} 50% 100%)'
+              if s["mode"] == "split" else s["primary"])
+        return (
+            f'<span style="display:inline-block;width:14px;height:14px;border-radius:3px;'
+            f'background:{bg};border:0.5px solid rgba(255,255,255,0.22);'
+            f'vertical-align:middle;flex:none;"></span>'
+        )
 
     chips = "".join(
-        f'<span class="wc-chip">{flag_img(t, 18)} {html.escape(t)}'
+        f'<span class="wc-chip">{_swatch(t)}'
+        f' {flag_img(t, 18)} {html.escape(t)}'
         f' <span style="color:{TXT3};">{latest.get(t, 0) * 100:.1f}%</span></span>'
         for t in sorted(teams, key=lambda t: latest.get(t, 0), reverse=True)
     )
     st.markdown(f'<div class="wc-chips">{chips}</div>', unsafe_allow_html=True)
 
+    domain        = list(teams)
+    primary_range = [styles[t]["primary"] for t in teams]
+
     axis_kw = dict(labelColor=TXT2, titleColor=TXT2, gridColor=CARD_BD,
                    domainColor=CARD_BD, tickColor=CARD_BD)
-    chart = (
-        alt.Chart(df[df["team"].isin(teams)])
-        .mark_line(point=True, strokeWidth=3)
-        .encode(
-            x=alt.X("generated_at:T", title="Snapshot", axis=alt.Axis(**axis_kw)),
-            y=alt.Y("p:Q", title="Title probability",
-                    axis=alt.Axis(format="%", **axis_kw)),
-            color=alt.Color("team:N", title="Team",
-                            scale=alt.Scale(domain=list(color_map.keys()),
-                                            range=list(color_map.values())),
-                            legend=alt.Legend(labelColor=TXT, titleColor=TXT2)),
-            tooltip=[
-                "team",
-                alt.Tooltip("generated_at:T", title="Snapshot"),
-                alt.Tooltip("p:Q", title="Title probability", format=".1%"),
-            ],
+    base = alt.Chart(df[df["team"].isin(teams)]).encode(
+        x=alt.X("generated_at:T", title="Snapshot", axis=alt.Axis(**axis_kw)),
+        y=alt.Y("p:Q", title="Title probability", axis=alt.Axis(format="%", **axis_kw)),
+        detail="team:N",
+    )
+    # Solid base line in each flag's primary color — every team shows this.
+    primary_line = base.mark_line(strokeWidth=3.5).encode(
+        color=alt.Color("team:N",
+                        scale=alt.Scale(domain=domain, range=primary_range),
+                        legend=None),
+    )
+    layers = [primary_line]
+
+    # Dashed secondary overlay, drawn only for teams flagged as clashing. The gaps
+    # reveal the primary beneath, giving those teams a bicolor line.
+    if split_teams:
+        secondary_range = [styles[t]["secondary"] for t in split_teams]
+        secondary_line = (
+            base.transform_filter(alt.FieldOneOfPredicate("team", split_teams))
+            .mark_line(strokeWidth=4, strokeDash=[10, 10])
+            .encode(color=alt.Color("team:N",
+                                    scale=alt.Scale(domain=split_teams, range=secondary_range),
+                                    legend=None))
         )
+        layers.append(secondary_line)
+
+    points = base.mark_point(size=55, filled=True).encode(
+        color=alt.Color("team:N",
+                        scale=alt.Scale(domain=domain, range=primary_range),
+                        legend=None),
+        tooltip=[
+            "team",
+            alt.Tooltip("generated_at:T", title="Snapshot"),
+            alt.Tooltip("p:Q", title="Title probability", format=".1%"),
+        ],
+    )
+    layers.append(points)
+
+    chart = (
+        alt.layer(*layers)
+        .resolve_scale(color="independent")
         .properties(height=480)
         .configure(background="transparent")
         .configure_view(strokeWidth=0)
