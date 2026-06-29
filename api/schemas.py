@@ -17,6 +17,21 @@ class MatchPrediction(BaseModel):
     p_away_win: float = Field(ge=0.0, le=1.0)
 
 
+class KnockoutMatch(BaseModel):
+    """Win probabilities for a single knockout-stage match (no draw — extra time modeled as 50-50)."""
+    home: str
+    away: str
+    p_home_win: float = Field(ge=0.0, le=1.0)
+    p_away_win: float = Field(ge=0.0, le=1.0)
+
+
+class KnockoutBracketResponse(BaseModel):
+    """Expected knockout bracket (R32 through Final) with per-match win probabilities."""
+    generated_at: str
+    n_simulations: int
+    knockout_bracket: dict[str, list[KnockoutMatch]]
+
+
 class TournamentOddsResponse(BaseModel):
     """Per-team tournament-win probabilities from the latest Monte Carlo run."""
     generated_at: str

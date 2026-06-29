@@ -35,6 +35,8 @@ from api.dependencies import (
 import api.dependencies as deps
 from api.schemas import (
     MatchPrediction,
+    KnockoutMatch,
+    KnockoutBracketResponse,
     TournamentOddsResponse,
     OddsHistoryEntry,
     HealthResponse,
@@ -157,6 +159,28 @@ def get_tournament_odds(predictions: dict = Depends(get_predictions)) -> dict:
         "generated_at": predictions["generated_at"],
         "n_simulations": predictions["n_simulations"],
         "tournament_odds": predictions["tournament_odds"],
+    }
+
+
+@app.get("/predictions/knockout", response_model=KnockoutBracketResponse, tags=["predictions"])
+def get_knockout_bracket(predictions: dict = Depends(get_predictions)) -> dict:
+    """
+    Expected knockout bracket (R32 through Final) with per-match win probabilities.
+
+    Returns the most-likely bracket derived from per-group finish-count distributions
+    across all Monte Carlo runs. Probabilities are normalized over win/loss only — no
+    draw segment, as extra time/penalties are modeled as 50-50 in the simulator.
+
+    Args:
+        predictions: Cached predictions payload from startup, injected by dependency provider.
+
+    Returns:
+        dict: Dictionary with keys [generated_at, n_simulations, knockout_bracket].
+    """
+    return {
+        "generated_at": predictions["generated_at"],
+        "n_simulations": predictions["n_simulations"],
+        "knockout_bracket": predictions["knockout_bracket"],
     }
 
 

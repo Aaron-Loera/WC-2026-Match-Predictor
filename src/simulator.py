@@ -414,38 +414,48 @@ def _run_monte_carlo(
     n: int,
     proba_cache: dict[tuple[str, str], np.ndarray],
     rank_lookup: dict[str, float],
-) -> dict[str, float]:
-    """    
+) -> tuple[dict[str, float], dict[tuple[str, str, int], int]]:
+    """
     Run `n` Monte Carlo tournament simulations and compute tournament win probabilities
-    for all teams. 
-    
+    for all teams.
+
     Tallies how many times each team wins, then converts counts to win
     probabilities. Execute `n` independent tournament simulations, each consisting of:
     1. Simulating the group stage with all 72 group matches.
     2. Selecting the 8 best third-place qualifiers.
     3. Constructing the R32 knockout bracket.
     4. Simulating all knockout rounds to determine a champion.
-    
+
     Args:
         n: Number of Monte Carlo simulations to run.
         proba_cache: Pre-computed match probabilities from `_prepare_simulation()`.
         rank_lookup: Team FIFA rank lookups from `_prepare_simulation()`.
-        
+
     Returns:
-        dict: Tournament win probabilities.
+        tuple: Two-tuple containing (tournament_odds, finish_counts) where "tournament_odds"
+        maps teams to win probabilities.
     """
     all_teams = [t for g in WC2026_GROUPS.values() for t in g]
-    win_counts: dict[str, int] = defaultdict(int)
+    win_counts: dict[str, int] = defaultdict(int) # tournament wins
+    finish_counts: dict[tuple[str, str, int], int] = defaultdict(int) # team ending in certain group place
+    
     t0 = perf_counter()
     print(f"Running {n:,} Monte Carlo simulations...")
+    
     for _ in range(n):
         standings, points = simulate_group_stage(proba_cache, rank_lookup)
+        # Record each team's group-finish position for the expected-bracket builder
+        for group, ranked_teams in standings.items():
+            for pos, team in enumerate(ranked_teams):
+                finish_counts[(group, team, pos)] += 1
+                
         third = _select_third_place_qualifiers(standings, points, rank_lookup)
         bracket = _build_r32_bracket(standings, third)
         champion = simulate_knockout(bracket, proba_cache)
         win_counts[champion] += 1
+        
     print(f"Completed {n:,} simulations in {perf_counter() - t0:.1f}s")
-    return {team: round(win_counts[team] / n, 4) for team in all_teams}
+    return {team: round(win_counts[team] / n, 4) for team in all_teams}, dict(finish_counts)
 
 
 # ---------------------------------------------------------------------------
@@ -536,7 +546,8 @@ def simulate_tournament(n: int=N_SIMULATIONS) -> dict[str, float]:
         dict: Tournament win probabilities.
     """
     proba_cache, rank_lookup, _cache_misses = _prepare_simulation()
-    return _run_monte_carlo(n, proba_cache, rank_lookup)
+    tournament_odds, _ = _run_monte_carlo(n, proba_cache, rank_lookup)
+    return tournament_odds
 
 
 def lock_result(team_a: str, team_b: str, score_a: int, score_b: int) -> None:
@@ -578,7 +589,8 @@ def export_predictions(output_path: Path | str=PREDICTIONS_PATH) -> None:
     
     # Prepare and run simulation
     proba_cache, rank_lookup, cache_misses = _prepare_simulation()
-    tournament_odds = _run_monte_carlo(N_SIMULATIONS, proba_cache, rank_lookup)
+    tournament_odds, finish_counts = _run_monte_carlo(N_SIMULATIONS, proba_cache, rank_lookup)
+    knockout_bracket = _build_expected_knockout_bracket(proba_cache, finish_counts, rank_lookup)
 
     # Get match predictions for all 72 matches
     match_predictions = []
@@ -602,6 +614,7 @@ def export_predictions(output_path: Path | str=PREDICTIONS_PATH) -> None:
         "cache_misses": cache_misses,
         "tournament_odds": tournament_odds,
         "match_predictions": match_predictions,
+        "knockout_bracket": knockout_bracket,
     }
     
     # Save serialized payload
@@ -646,6 +659,109 @@ def update_history(
 # ---------------------------------------------------------------------------
 # Private Helpers: Bracket Construction
 # ---------------------------------------------------------------------------
+
+def _derive_expected_standings(
+    finish_counts: dict[tuple[str, str, int], int],
+    rank_lookup: dict[str, float],
+) -> tuple[dict[str, list[str]], dict[str, int]]:
+    """
+    Derive the most-likely group standings from accumulated finish-count data.
+    
+    For each team in each group, finds the modal finish position (that is, the position it
+    occupied most often across all MC simulation runs). Sorts each group by that position,
+    with FIFA rank as the tiebreaker. Returns synthetics points (7, 5, 3, 0) with each team
+    so the output is compatible wit third-place qualifiers selection logic.
+
+    Args:
+        finish_counts: Maps (group, team, position) to frequency count (from `_run_monte_carlo()`).
+        rank_lookup: Team FIFA rank lookup.
+
+    Returns:
+        tuple: A two-tuple consisting of (standings, expected_points) shaped identically to
+        `simulate_group_stage()`.
+    """
+    _SYNTHETIC_PTS = {0: 7, 1: 5, 2: 3, 3: 0}
+    standings: dict[str, list[str]] = {}
+    expected_points: dict[str, int] = {}
+    
+    for group, teams in WC2026_GROUPS.items():
+        # Assign most frequent group position to each team
+        modal = {
+            t: max(
+                range(4),
+                key=lambda p, t=t, g=group: finish_counts.get((g, t, p), 0)
+                )
+            for t in teams
+        }
+        
+        # Sort group teams by modal position with FIFA rank as tiebreaker
+        sorted_teams = sorted(teams, key=lambda t: (modal[t], rank_lookup.get(t, 999)))
+        standings[group] = sorted_teams
+        
+        # Assign synthetic points
+        for t in teams:
+            expected_points[t] = _SYNTHETIC_PTS[modal[t]]
+            
+    return standings, expected_points
+
+
+def _build_expected_knockout_bracket(
+    proba_cache: dict[tuple[str, str], np.ndarray],
+    finish_counts: dict[tuple[str, str, int], int],
+    rank_lookup: dict[str, float],
+) -> dict[str, list[dict]]:
+    """
+    Build a deterministic "most-likely" knockout bracket and win probabilities per-match.
+
+    Derives expected group standings from finish-count distributions, resolves the R32
+    bracket using the existing template helpers, then propagates winners round-by-round
+    (R32 -> R16 -> QF -> SF -> Final) using model probabilities. Win probabilities are
+    normalized over win/loss only — no draw segment in knockout rounds.
+
+    Args:
+        proba_cache: Pre-computed match probabilities from `_prepare_simulation()`.
+        finish_counts: Maps (group, team, position) to frequency count (from `_run_monte_carlo()`).
+        rank_lookup: Team FIFA rank lookup.
+
+    Returns:
+        dict: Keyed by round name ("R32", "R16", "QF", "SF", "Final"). Each value is a list
+            of match dicts with keys: [home, away, p_home_win, p_away_win].
+    """
+    standings, expected_points = _derive_expected_standings(finish_counts, rank_lookup)
+    third = _select_third_place_qualifiers(standings, expected_points, rank_lookup)
+    r32_pairs = _build_r32_bracket(standings, third)
+
+    def _ko_proba(home: str, away: str) -> tuple[float, float]:
+        """Extract knockout-normalized probabilities (p_home, p_away)."""
+        proba = proba_cache.get((home, away))
+        if proba is None:
+            return 0.5, 0.5
+        p_win, p_loss = float(proba[2]), float(proba[0])
+        denom = p_win + p_loss
+        if denom < 1e-9:
+            return 0.5, 0.5
+        return round(p_win / denom, 4), round(p_loss / denom, 4)
+
+    bracket: dict[str, list[dict]] = {}
+    current_pairs = r32_pairs
+    
+    for round_name in ["R32", "R16", "QF", "SF", "Final"]:
+        matches: list[dict] = []
+        winners: list[str] = []
+        
+        # Compute probabilities and record winner
+        for home, away in current_pairs:
+            ph, pa = _ko_proba(home, away)
+            matches.append({"home": home, "away": away, "p_home_win": ph, "p_away_win": pa})
+            winners.append(home if ph >= pa else away)
+            
+        # Store the round's matches and pair up consecutive winners
+        bracket[round_name] = matches
+        if round_name != "Final":
+            current_pairs = [(winners[i], winners[i + 1]) for i in range(0, len(winners), 2)]
+            
+    return bracket
+
 
 def _select_third_place_qualifiers(
     standings: dict[str, list[str]],

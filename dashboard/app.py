@@ -265,6 +265,12 @@ def fetch_odds_history() -> list[dict]:
     return _get("/predictions/history")
 
 
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
+def fetch_knockout_bracket() -> dict:
+    """Cached wrapper around GET /predictions/knockout."""
+    return _get("/predictions/knockout")
+
+
 @st.cache_data(ttl=60)
 def fetch_health() -> dict:
     """Short-TTL wrapper around GET /health so the status dot stays fresh."""
@@ -625,91 +631,168 @@ def render_tournament_odds() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Page 2 — Match Predictor
+# Page 2 — Match Predictor (shared knockout helpers)
 # ---------------------------------------------------------------------------
 
+_KO_LABEL = {
+    "R32": "Round of 32", "R16": "Round of 16",
+    "QF": "Quarter Finals", "SF": "Semi Finals", "Final": "Final",
+}
+_KO_COLS = {"R32": 4, "R16": 4, "QF": 4, "SF": 2, "Final": 1}
+
+
+def _render_ko_match_card(match: dict) -> str:
+    """Return HTML for a single knockout match card with a 2-segment split bar."""
+    home, away = match["home"], match["away"]
+    ph, pa = match["p_home_win"], match["p_away_win"]
+    winner = home if ph >= pa else away
+    return (
+        f'<div class="wc-ko-card">'
+        f'  <div class="wc-ko-teams">'
+        f'    {flag_img(home, 18)} <span class="wc-ko-nm">{html.escape(home)}</span>'
+        f'    <span class="wc-ko-vs">vs</span>'
+        f'    {flag_img(away, 18)} <span class="wc-ko-nm">{html.escape(away)}</span>'
+        f'  </div>'
+        f'  <div class="wc-split">'
+        f'    <div style="width:{ph*100:.1f}%;background:{GREEN};color:#0d1f06;">{ph*100:.0f}%</div>'
+        f'    <div style="width:{pa*100:.1f}%;background:{GOLD};color:#2a1500;">{pa*100:.0f}%</div>'
+        f'  </div>'
+        f'  <div class="wc-splitlbl">'
+        f'    <span>{html.escape(home)}</span><span>{html.escape(away)}</span>'
+        f'  </div>'
+        f'  <div class="wc-ko-adv">{ball_svg(14)}'
+        f'  <span>Expected to advance: <strong>{html.escape(winner)}</strong></span></div>'
+        f'</div>'
+    )
+
+
+def _render_ko_round(round_name: str, matches: list[dict]) -> None:
+    """Render all matches for one knockout round as a responsive card grid."""
+    label = _KO_LABEL.get(round_name, round_name)
+    n_cols = _KO_COLS.get(round_name, 4)
+    n = len(matches)
+    noun = "match" if n == 1 else "matches"
+    st.markdown(
+        f'<p class="wc-eyebrow">Expected {label} matchups — '
+        f'{n} {noun} based on most-likely group-stage outcomes.</p>',
+        unsafe_allow_html=True,
+    )
+    cards_html = "".join(_render_ko_match_card(m) for m in matches)
+    st.markdown(
+        f'<div class="wc-ko-grid wc-ko-cols-{n_cols}">{cards_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def render_match_predictor() -> None:
-    """Team selectors, split probability bar, outcome cards, most-likely callout."""
+    """Group-stage team selectors + 5 knockout-stage subtabs."""
+    gs_tab, r32_tab, r16_tab, qf_tab, sf_tab, final_tab = st.tabs(
+        ["Group Stage", "Round of 32", "Round of 16", "Quarter Finals", "Semi Finals", "Final"]
+    )
+
+    # --- Group Stage ---
+    with gs_tab:
+        try:
+            matches = fetch_match_predictions()
+        except requests.RequestException as exc:
+            st.error(f"Couldn't reach the prediction API at {API_BASE_URL}: {exc}")
+            return
+
+        df = pd.DataFrame(matches)
+        st.markdown(
+            '<p class="wc-eyebrow">Pick any group-stage pairing to see win, draw and loss probabilities.</p>',
+            unsafe_allow_html=True,
+        )
+
+        teams = sorted(set(df["home"]) | set(df["away"]))
+
+        col1, col2 = st.columns(2)
+        home = col1.selectbox("Home team", teams)
+
+        opponents = sorted(
+            set(df.loc[df["home"] == home, "away"])
+            | set(df.loc[df["away"] == home, "home"])
+        )
+        away = col2.selectbox("Away team", opponents)
+
+        fixture = df[
+            ((df["home"] == home) & (df["away"] == away))
+            | ((df["home"] == away) & (df["away"] == home))
+        ].iloc[0]
+
+        if fixture["home"] == home:
+            ph, pd_, pa = float(fixture["p_home_win"]), float(fixture["p_draw"]), float(fixture["p_away_win"])
+        else:
+            ph, pd_, pa = float(fixture["p_away_win"]), float(fixture["p_draw"]), float(fixture["p_home_win"])
+
+        st.markdown(
+            f'<div class="wc-context">'
+            f'  {flag_img(home, 18)} <strong>{html.escape(home)}</strong>'
+            f'  &nbsp;vs&nbsp;'
+            f'  {flag_img(away, 18)} <strong>{html.escape(away)}</strong>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"""
+            <div class="wc-split">
+              <div style="width:{ph*100:.1f}%;background:{GREEN};color:#0d1f06;">{ph*100:.0f}%</div>
+              <div style="width:{pd_*100:.1f}%;background:{GREY};color:#111;">{pd_*100:.0f}%</div>
+              <div style="width:{pa*100:.1f}%;background:{GOLD};color:#2a1500;">{pa*100:.0f}%</div>
+            </div>
+            <div class="wc-splitlbl">
+              <span>{html.escape(home)} win</span><span>Draw</span><span>{html.escape(away)} win</span>
+            </div>
+            <div class="wc-cards">
+              <div class="wc-card">
+                <div class="hd">{flag_img(home)} {html.escape(home)} win</div>
+                <div class="big" style="color:{GREEN_TXT};">{ph*100:.1f}%</div>
+                <div class="mini"><div style="width:{ph*100:.0f}%;height:100%;background:{GREEN};"></div></div>
+              </div>
+              <div class="wc-card">
+                <div class="hd">Draw</div>
+                <div class="big" style="color:#C7CCD1;">{pd_*100:.1f}%</div>
+                <div class="mini"><div style="width:{pd_*100:.0f}%;height:100%;background:{GREY};"></div></div>
+              </div>
+              <div class="wc-card">
+                <div class="hd">{flag_img(away)} {html.escape(away)} win</div>
+                <div class="big" style="color:{GOLD_TXT};">{pa*100:.1f}%</div>
+                <div class="mini"><div style="width:{pa*100:.0f}%;height:100%;background:{GOLD};"></div></div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        outcomes = {f"{home} win": ph, "Draw": pd_, f"{away} win": pa}
+        best = max(outcomes, key=outcomes.get)
+        st.markdown(
+            f'<div class="wc-callout">{ball_svg(20)}'
+            f'<span><strong>Most likely: {html.escape(best)} ({outcomes[best]*100:.0f}%)</strong>'
+            f' &mdash; Calibrated from the latest model run.</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    # --- Knockout stages (shared fetch) ---
     try:
-        matches = fetch_match_predictions()
+        ko_payload = fetch_knockout_bracket()
+        bracket = ko_payload["knockout_bracket"]
     except requests.RequestException as exc:
-        st.error(f"Couldn't reach the prediction API at {API_BASE_URL}: {exc}")
+        for tab in (r32_tab, r16_tab, qf_tab, sf_tab, final_tab):
+            with tab:
+                st.error(f"Couldn't reach the prediction API at {API_BASE_URL}: {exc}")
         return
 
-    df = pd.DataFrame(matches)
-    st.markdown(
-        '<p class="wc-eyebrow">Pick any group-stage pairing to see win, draw and loss probabilities.</p>',
-        unsafe_allow_html=True,
-    )
-
-    teams = sorted(set(df["home"]) | set(df["away"]))
-
-    col1, col2 = st.columns(2)
-    home = col1.selectbox("Home team", teams)
-
-    opponents = sorted(
-        set(df.loc[df["home"] == home, "away"])
-        | set(df.loc[df["away"] == home, "home"])
-    )
-    away = col2.selectbox("Away team", opponents)
-
-    fixture = df[
-        ((df["home"] == home) & (df["away"] == away))
-        | ((df["home"] == away) & (df["away"] == home))
-    ].iloc[0]
-
-    if fixture["home"] == home:
-        ph, pd_, pa = float(fixture["p_home_win"]), float(fixture["p_draw"]), float(fixture["p_away_win"])
-    else:
-        ph, pd_, pa = float(fixture["p_away_win"]), float(fixture["p_draw"]), float(fixture["p_home_win"])
-
-    st.markdown(
-        f'<div class="wc-context">'
-        f'  {flag_img(home, 18)} <strong>{html.escape(home)}</strong>'
-        f'  &nbsp;vs&nbsp;'
-        f'  {flag_img(away, 18)} <strong>{html.escape(away)}</strong>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f"""
-        <div class="wc-split">
-          <div style="width:{ph*100:.1f}%;background:{GREEN};color:#0d1f06;">{ph*100:.0f}%</div>
-          <div style="width:{pd_*100:.1f}%;background:{GREY};color:#111;">{pd_*100:.0f}%</div>
-          <div style="width:{pa*100:.1f}%;background:{GOLD};color:#2a1500;">{pa*100:.0f}%</div>
-        </div>
-        <div class="wc-splitlbl">
-          <span>{html.escape(home)} win</span><span>Draw</span><span>{html.escape(away)} win</span>
-        </div>
-        <div class="wc-cards">
-          <div class="wc-card">
-            <div class="hd">{flag_img(home)} {html.escape(home)} win</div>
-            <div class="big" style="color:{GREEN_TXT};">{ph*100:.1f}%</div>
-            <div class="mini"><div style="width:{ph*100:.0f}%;height:100%;background:{GREEN};"></div></div>
-          </div>
-          <div class="wc-card">
-            <div class="hd">Draw</div>
-            <div class="big" style="color:#C7CCD1;">{pd_*100:.1f}%</div>
-            <div class="mini"><div style="width:{pd_*100:.0f}%;height:100%;background:{GREY};"></div></div>
-          </div>
-          <div class="wc-card">
-            <div class="hd">{flag_img(away)} {html.escape(away)} win</div>
-            <div class="big" style="color:{GOLD_TXT};">{pa*100:.1f}%</div>
-            <div class="mini"><div style="width:{pa*100:.0f}%;height:100%;background:{GOLD};"></div></div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    outcomes = {f"{home} win": ph, "Draw": pd_, f"{away} win": pa}
-    best = max(outcomes, key=outcomes.get)
-    st.markdown(
-        f'<div class="wc-callout">{ball_svg(20)}'
-        f'<span><strong>Most likely: {html.escape(best)} ({outcomes[best]*100:.0f}%)</strong>'
-        f' &mdash; Calibrated from the latest model run.</span></div>',
-        unsafe_allow_html=True,
-    )
+    with r32_tab:
+        _render_ko_round("R32", bracket["R32"])
+    with r16_tab:
+        _render_ko_round("R16", bracket["R16"])
+    with qf_tab:
+        _render_ko_round("QF", bracket["QF"])
+    with sf_tab:
+        _render_ko_round("SF", bracket["SF"])
+    with final_tab:
+        _render_ko_round("Final", bracket["Final"])
 
 
 # ---------------------------------------------------------------------------
