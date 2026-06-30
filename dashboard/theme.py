@@ -171,12 +171,12 @@ def inject_theme() -> None:
         .wc-ko-cols-2{grid-template-columns:repeat(2,1fr);max-width:800px}
         .wc-ko-cols-1{grid-template-columns:1fr;max-width:420px}
         .wc-ko-card{background:var(--wc-card);border:1px solid var(--wc-bd);
-          border-radius:var(--wc-r);padding:18px}
+          border-radius:var(--wc-r);padding:18px;display:flex;flex-direction:column}
         .wc-ko-teams{display:flex;align-items:center;gap:8px;margin-bottom:14px;
           font-size:13px;color:var(--wc-txt2);flex-wrap:wrap}
         .wc-ko-nm{color:var(--wc-txt);font-weight:500;font-size:14px}
         .wc-ko-vs{font-size:11px;color:var(--wc-txt3);flex:1;text-align:center}
-        .wc-ko-adv{display:flex;align-items:center;gap:8px;margin-top:10px;
+        .wc-ko-adv{display:flex;align-items:center;gap:8px;margin-top:auto;
           font-size:13px;color:#CDE6A8;background:var(--wc-gtint);
           border-radius:7px;padding:8px 12px}
         .wc-ko-adv strong{color:var(--wc-gtxt)}
@@ -190,8 +190,10 @@ def inject_theme() -> None:
           font-weight:800;color:var(--wc-txt);line-height:1;letter-spacing:1px}
         .wc-ko-pens{font-size:12px;color:var(--wc-txt3);width:100%;text-align:center}
         .wc-ko-winner{display:flex;align-items:center;gap:8px;font-size:13px;
-          color:#CDE6A8;background:var(--wc-gtint);border-radius:7px;padding:8px 12px}
+          color:#CDE6A8;background:var(--wc-gtint);border-radius:7px;padding:8px 12px;margin-top:auto}
         .wc-ko-winner strong{color:var(--wc-gtxt)}
+        .wc-ko-winner-played{background:rgba(242,169,59,.15);color:var(--wc-gold)}
+        .wc-ko-winner-played strong{color:var(--wc-gold)}
 
         /* === GROUP STANDINGS === */
         .wc-groups{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}

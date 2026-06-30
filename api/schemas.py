@@ -9,12 +9,16 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 
 class MatchPrediction(BaseModel):
-    """Win/draw/loss probabilities for a single group-stage match."""
+    """Win/draw/loss probabilities for a single group-stage match, with real result when played."""
     home: str
     away: str
     p_home_win: float = Field(ge=0.0, le=1.0)
     p_draw: float = Field(ge=0.0, le=1.0)
     p_away_win: float = Field(ge=0.0, le=1.0)
+    group: str | None = None
+    status: str = "scheduled"
+    home_score: int | None = None
+    away_score: int | None = None
 
 
 class KnockoutMatch(BaseModel):

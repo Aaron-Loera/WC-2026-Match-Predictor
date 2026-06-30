@@ -70,6 +70,15 @@ _R32_TEMPLATE: list[tuple[str, str]] = [
     ("RD", "RG"),  # M88 -- runner-up D vs runner-up G
 ]
 
+# Visual display order for the bracket tree.
+_VISUAL_ORDER: dict[str, list[int]] = {
+    "R32":   [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87],
+    "R16":   [89, 90, 93, 94, 91, 92, 95, 96],
+    "QF":    [97, 98, 99, 100],
+    "SF":    [101, 102],
+    "Final": [104],
+}
+
 # Module-level locked results (populated by lock_result())
 _locked_results: dict[tuple[str, str], tuple[int, int]] = {}
 
@@ -627,18 +636,29 @@ def export_predictions(output_path: Path | str=PREDICTIONS_PATH) -> None:
 
     # Get match predictions/results for all 72 group matches
     match_predictions = []
-    for teams in WC2026_GROUPS.values():
+    for group_letter, teams in WC2026_GROUPS.items():
         for home, away in itertools.combinations(teams, 2):
             p = _locked_proba(home, away)
             if p is None:
                 p = proba_cache.get((home, away), np.full(3, 1 / 3))
-            match_predictions.append({
+            entry = {
                 "home": home,
                 "away": away,
+                "group": group_letter,
                 "p_home_win": round(float(p[2]), 4),
-                "p_draw": round(float(p[1]), 4),
+                "p_draw":     round(float(p[1]), 4),
                 "p_away_win": round(float(p[0]), 4),
-            })
+                "status": "scheduled",
+                "home_score": None,
+                "away_score": None,
+            }
+            if (home, away) in _locked_results:
+                hs, as_ = _locked_results[(home, away)]
+                entry.update(status="played", home_score=hs, away_score=as_)
+            elif (away, home) in _locked_results:
+                as_, hs = _locked_results[(away, home)]
+                entry.update(status="played", home_score=hs, away_score=as_)
+            match_predictions.append(entry)
 
     # Construct output JSON structure
     payload = {
@@ -979,6 +999,12 @@ def _build_real_knockout_bracket(
             "home_pens": node["home_pens"],
             "away_pens": node["away_pens"],
         })
+
+    # Sort each round into the correct visual order
+    for rnd, order in _VISUAL_ORDER.items():
+        order_idx = {mn: i for i, mn in enumerate(order)}
+        bracket[rnd].sort(key=lambda m: order_idx.get(m["match_number"], 999))
+
     return bracket
 
 

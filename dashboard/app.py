@@ -4,7 +4,7 @@ Streamlit dashboard for the WC 2026 Match Predictor — redesigned.
 Pages (st.tabs):
   1. Tournament Odds  — Countdown banner · KPI strip · animated title-race bars.
   2. Match Predictor  — Team selectors · split bar · outcome cards.
-  3. Group Standings  — 12-group grid ranked by title probability.
+  3. Standings & Bracket — 12-group grid ranked by title probability.
   4. Odds Tracker     — Biggest-mover cards · multi-line title-probability chart.
 
 Theme: Barlow Condensed for display text · dark charcoal + pitch-green + gold.
@@ -159,18 +159,29 @@ GROUPS: dict[str, list[str]] = {
 # HTML Helpers
 # ---------------------------------------------------------------------------
 
-def ball_svg(size: int = 22) -> str:
-    """Inline green soccer-ball brand mark as a self-contained SVG string."""
+def ball_svg(size: int = 22, color: str | None = None) -> str:
+    """Inline soccer-ball brand mark as a self-contained SVG string.
+
+    Defaults to the pitch-green gradient; pass a hex `color` for a flat tint.
+    """
+    if color:
+        stroke = f'stroke="{color}"'
+        defs = ""
+    else:
+        stroke = 'stroke="url(#bG)"'
+        defs = (
+            '<defs><linearGradient id="bG" gradientUnits="userSpaceOnUse" x1="291" y1="32" x2="291" y2="550">'
+            '<stop offset="0" stop-color="#9EDB35"/><stop offset="1" stop-color="#5DA10C"/>'
+            '</linearGradient></defs>'
+        )
     return (
         f'<svg width="{size}" height="{size}" viewBox="0 0 582 582" '
         'xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;flex:none;">'
-        '<defs><linearGradient id="bG" gradientUnits="userSpaceOnUse" x1="291" y1="32" x2="291" y2="550">'
-        '<stop offset="0" stop-color="#9EDB35"/><stop offset="1" stop-color="#5DA10C"/>'
-        '</linearGradient></defs>'
-        '<circle cx="291" cy="291" r="259" fill="none" stroke="url(#bG)" stroke-width="63"/>'
-        '<path d="M291,148.5 L426.5,247 L374.8,406.3 L207.2,406.3 L155.5,247 Z" '
-        'fill="none" stroke="url(#bG)" stroke-width="63" stroke-linejoin="round"/>'
-        '<g stroke="url(#bG)" stroke-width="63">'
+        f'{defs}'
+        f'<circle cx="291" cy="291" r="259" fill="none" {stroke} stroke-width="63"/>'
+        f'<path d="M291,148.5 L426.5,247 L374.8,406.3 L207.2,406.3 L155.5,247 Z" '
+        f'fill="none" {stroke} stroke-width="63" stroke-linejoin="round"/>'
+        f'<g {stroke} stroke-width="63">'
         '<line x1="291" y1="148.5" x2="291" y2="32"/>'
         '<line x1="426.5" y1="247" x2="537.3" y2="211"/>'
         '<line x1="374.8" y1="406.3" x2="443.2" y2="500.5"/>'
@@ -634,6 +645,16 @@ def render_tournament_odds() -> None:
 # Page 2 — Match Predictor (shared knockout helpers)
 # ---------------------------------------------------------------------------
 
+_MAX_NM = 14
+
+
+def _short(name: str | None) -> str:
+    """Truncate a team name to _MAX_NM chars to prevent overflow in card layouts."""
+    if not name:
+        return ""
+    return name if len(name) <= _MAX_NM else name[:_MAX_NM].rstrip() + "…"
+
+
 _KO_LABEL = {
     "R32": "Round of 32", "R16": "Round of 16",
     "QF": "Quarter Finals", "SF": "Semi Finals", "Final": "Final",
@@ -645,7 +666,7 @@ def _ko_team_label(name: str | None) -> str:
     """Flag + name for a knockout participant, or a 'TBD' placeholder if undetermined."""
     if not name:
         return f'{flag_img("", 18)} <span class="wc-ko-nm wc-ko-tbd">TBD</span>'
-    return f'{flag_img(name, 18)} <span class="wc-ko-nm">{html.escape(name)}</span>'
+    return f'{flag_img(name, 18)} <span class="wc-ko-nm" title="{html.escape(name)}">{html.escape(_short(name))}</span>'
 
 
 def _render_ko_match_card(match: dict) -> str:
@@ -673,15 +694,15 @@ def _render_ko_match_card(match: dict) -> str:
                 if hp is not None and ap is not None else "")
         score_html = (
             f'<div class="wc-ko-score">'
-            f'<span class="t">{html.escape(home or "TBD")}</span>'
+            f'<span class="t">{html.escape(_short(home) or "TBD")}</span>'
             f'<span class="sc">{hs}&ndash;{as_}</span>'
-            f'<span class="t">{html.escape(away or "TBD")}</span>'
+            f'<span class="t">{html.escape(_short(away) or "TBD")}</span>'
             f'{pens}'
             f'</div>'
         )
         badge = (
-            f'<div class="wc-ko-winner">{ball_svg(14)}'
-            f'<span><strong>{html.escape(winner)}</strong> advance</span></div>'
+            f'<div class="wc-ko-winner wc-ko-winner-played">{ball_svg(14, color=GOLD)}'
+            f'<span><strong>{html.escape(_short(winner))}</strong> advance</span></div>'
             if winner else ""
         )
         return f'<div class="wc-ko-card wc-ko-played">{teams_row}{score_html}{badge}</div>'
@@ -697,10 +718,10 @@ def _render_ko_match_card(match: dict) -> str:
         f'<div style="width:{pa*100:.1f}%;background:{GOLD};color:#2a1500;">{pa*100:.0f}%</div>'
         f'</div>'
         f'<div class="wc-splitlbl">'
-        f'<span>{html.escape(home or "TBD")}</span><span>{html.escape(away or "TBD")}</span>'
+        f'<span>{html.escape(_short(home) or "TBD")}</span><span>{html.escape(_short(away) or "TBD")}</span>'
         f'</div>'
         f'<div class="wc-ko-adv">{ball_svg(14)}'
-        f'<span>Expected to advance: <strong>{html.escape(predicted)}</strong></span></div>'
+        f'<span>Expected to advance: <strong>{html.escape(_short(predicted))}</strong></span></div>'
         f'</div>'
     )
 
@@ -833,60 +854,397 @@ def render_match_predictor() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Page 3 — Group Standings
+# Page 3 — Standings & Bracket (bracket-tree helpers live here too)
 # ---------------------------------------------------------------------------
 
-def render_group_standings() -> None:
-    """12-group grid with teams ranked by title-win probability."""
-    try:
-        payload = fetch_tournament_odds()
-        odds: dict[str, float] = payload["tournament_odds"]
-    except requests.RequestException as exc:
-        st.error(f"Couldn't reach the prediction API at {API_BASE_URL}: {exc}")
-        return
+def _bracket_connector_svg(slot_h: int, n_source: int, width: int = 24) -> str:
+    """SVG connector column bridging n_source slots in round R to n_source//2 slots in round R+1."""
+    n_groups = n_source // 2
+    total_h  = slot_h * n_source
+    x_bridge = width // 2
 
-    st.markdown(
-        '<p class="wc-eyebrow">12 groups &middot; 48 teams &middot; '
-        'ranked by title probability. <svg width="8" height="8" viewBox="0 0 8 8" style="vertical-align:middle;">'
-        '<circle cx="4" cy="4" r="3" fill="#F2A93B"/></svg> = predicted to advance &middot; '
-        '<span style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;">—</span> = eliminated.</p>',
-        unsafe_allow_html=True,
+    lines: list[str] = []
+    for i in range(n_groups):
+        y_a   = i * 2 * slot_h + slot_h // 2           # center of first source slot
+        y_b   = i * 2 * slot_h + slot_h + slot_h // 2  # center of second source slot
+        y_mid = i * 2 * slot_h + slot_h                 # midpoint → target slot center
+        c = "#34383C"
+        lines += [
+            f'<line x1="0" y1="{y_a}" x2="{x_bridge}" y2="{y_a}" stroke="{c}" stroke-width="1.5"/>',
+            f'<line x1="0" y1="{y_b}" x2="{x_bridge}" y2="{y_b}" stroke="{c}" stroke-width="1.5"/>',
+            f'<line x1="{x_bridge}" y1="{y_a}" x2="{x_bridge}" y2="{y_b}" stroke="{c}" stroke-width="1.5"/>',
+            f'<line x1="{x_bridge}" y1="{y_mid}" x2="{width}" y2="{y_mid}" stroke="{c}" stroke-width="1.5"/>',
+        ]
+    return (
+        f'<svg width="{width}" height="{total_h}" xmlns="http://www.w3.org/2000/svg"'
+        f' style="flex-shrink:0;display:block;">'
+        + "".join(lines)
+        + "</svg>"
     )
 
-    cards: list[str] = []
-    for letter, teams in GROUPS.items():
-        sorted_teams = sorted(teams, key=lambda t: odds.get(t, 0), reverse=True)
-        rows: list[str] = []
-        for i, t in enumerate(sorted_teams):
-            p     = odds.get(t, 0)
-            top2  = i < 2
-            cls   = "wc-gteam top2" if top2 else "wc-gteam"
-            color = "#F2A93B" if top2 else "#3A3E42"
-            pstr  = f"{p * 100:.1f}%" if p > 0 else "—"
-            rows.append(
-                f'<div class="{cls}">'
-                f'  <svg width="8" height="8" viewBox="0 0 8 8" style="flex-shrink:0;vertical-align:middle;">'
-                f'<circle cx="4" cy="4" r="3" fill="{color}"/></svg>'
-                f'  {flag_img(t, 18)}'
-                f'  <span class="nm">{html.escape(t)}</span>'
-                f'  <span class="pct">{pstr}</span>'
-                f'</div>'
+
+def _bt_match_card(match: dict) -> str:
+    """HTML for one bracket matchup card: two team rows (played score or scheduled probability)."""
+    home   = match.get("home")
+    away   = match.get("away")
+    played = match.get("status") == "played"
+    winner = match.get("winner")
+    ph     = match.get("p_home_win") or 0.5
+    pa     = match.get("p_away_win") or 0.5
+
+    def _flag(team: str | None) -> str:
+        iso = TEAM_ISO.get(team or "", "")
+        if iso:
+            return (
+                f'<img src="https://flagcdn.com/h40/{iso}.png" width="22" height="16"'
+                ' style="border-radius:2px;object-fit:cover;'
+                'border:0.5px solid rgba(255,255,255,0.15);flex-shrink:0;" alt="">'
             )
-        cards.append(
-            f'<div class="wc-group">'
-            f'  <div class="wc-group-hd">'
-            f'    <span class="wc-group-ltr">GROUP {letter}</span>'
-            f'  </div>'
-            f'  {"".join(rows)}'
-            f'</div>'
+        return (
+            '<span style="display:inline-block;width:22px;height:16px;'
+            'background:#3A3E42;border-radius:2px;flex-shrink:0;"></span>'
         )
 
-    st.markdown(f'<div class="wc-groups">{"".join(cards)}</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="wc-foot">Rankings use title win probability as a proxy for '
-        'group-stage quality. Official standings begin Jun 11, 2026.</div>',
-        unsafe_allow_html=True,
+    def _row(name: str | None, is_win: bool, score: int | None, prob: float | None) -> str:
+        base = (
+            "display:flex;align-items:center;gap:6px;padding:5px 9px;"
+            "font-size:14px;min-height:28px;"
+        )
+        if name is None:
+            return (
+                f'<div style="{base}color:#7A8087;">'
+                f'{_flag(None)}'
+                f'<span style="flex:1;font-style:italic;">TBD</span>'
+                f'<span style="min-width:28px;text-align:right;">—</span>'
+                f'</div>'
+            )
+        nm = html.escape(name)
+        if played:
+            bg   = "rgba(63,92,31,0.35)" if is_win else "transparent"
+            nc   = "#9FD45B"  if is_win else "#7A8087"
+            sc_c = "#E8EAEC" if is_win else "#7A8087"
+            val  = str(score) if score is not None else "—"
+            return (
+                f'<div style="{base}background:{bg};">'
+                f'{_flag(name)}'
+                f'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;'
+                f'white-space:nowrap;color:{nc};">{nm}</span>'
+                f'<span style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;'
+                f'font-size:16px;color:{sc_c};min-width:18px;text-align:right;">{val}</span>'
+                f'</div>'
+            )
+        else:
+            pc  = "#9FD45B" if (prob is not None and prob >= 0.5) else "#9AA0A6"
+            val = f"{prob * 100:.0f}%" if prob is not None else "—"
+            return (
+                f'<div style="{base}color:#9AA0A6;">'
+                f'{_flag(name)}'
+                f'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;'
+                f'white-space:nowrap;">{nm}</span>'
+                f'<span style="font-family:\'Barlow Condensed\',sans-serif;font-size:14px;'
+                f'color:{pc};min-width:28px;text-align:right;">{val}</span>'
+                f'</div>'
+            )
+
+    home_row = _row(home, winner == home if played else False,
+                    match.get("home_score") if played else None,
+                    ph if not played else None)
+    away_row = _row(away, winner == away if played else False,
+                    match.get("away_score") if played else None,
+                    pa if not played else None)
+
+    pens = ""
+    if played and match.get("home_pens") is not None:
+        pens = (
+            f'<div style="font-size:11px;color:#7A8087;text-align:center;padding:3px 6px;">'
+            f'({match["home_pens"]}&ndash;{match["away_pens"]} pens)</div>'
+        )
+
+    border = (
+        "border:1px solid #3A5A22;border-left:3px solid #7FB83E;"
+        if played else "border:1px solid #34383C;"
     )
+    return (
+        f'<div style="background:#26292C;{border}border-radius:8px;'
+        f'width:200px;overflow:hidden;flex-shrink:0;">'
+        f'{home_row}'
+        f'<div style="height:1px;background:rgba(52,56,60,0.6);"></div>'
+        f'{away_row}'
+        f'{pens}'
+        f'</div>'
+    )
+
+
+def _build_bracket_tree_html(bracket: dict) -> str:
+    """Self-contained HTML page for the traditional left-to-right knockout bracket tree."""
+    SLOT       = 90   # R32 slot height (px); doubles each successive round
+    C_W        = 200  # card width (px)
+    CN_W       = 32   # connector SVG width (px)
+    ROUNDS     = ["R32", "R16", "QF", "SF", "Final"]
+    RND_LABELS = {
+        "R32": "Round of 32", "R16": "Round of 16",
+        "QF": "Quarter Finals", "SF": "Semi Finals", "Final": "Final",
+    }
+    RND_COUNTS = {"R32": 16, "R16": 8, "QF": 4, "SF": 2, "Final": 1}
+
+    lbl_sty = (
+        f"width:{C_W}px;text-align:center;font-size:11px;font-weight:700;"
+        "letter-spacing:1.5px;text-transform:uppercase;color:#7A8087;"
+        "padding-bottom:10px;flex-shrink:0;"
+    )
+    hdrs: list[str] = []
+    for i, rnd in enumerate(ROUNDS):
+        hdrs.append(f'<div style="{lbl_sty}">{RND_LABELS[rnd]}</div>')
+        if i < len(ROUNDS) - 1:
+            hdrs.append(f'<div style="width:{CN_W}px;flex-shrink:0;"></div>')
+    header_html = (
+        f'<div style="display:flex;min-width:max-content;">{"".join(hdrs)}</div>'
+    )
+
+    col_parts: list[str] = []
+    for round_idx, rnd in enumerate(ROUNDS):
+        slot_h  = SLOT * (2 ** round_idx)
+        n_exp   = RND_COUNTS[rnd]
+        matches = list(bracket.get(rnd, []))
+        while len(matches) < n_exp:     # pad with empty placeholders if data is incomplete
+            matches.append({})
+
+        slots = [
+            f'<div style="height:{slot_h}px;display:flex;align-items:center;flex-shrink:0;">'
+            f'{_bt_match_card(m)}</div>'
+            for m in matches
+        ]
+        col_parts.append(
+            f'<div style="display:flex;flex-direction:column;flex-shrink:0;">'
+            f'{"".join(slots)}</div>'
+        )
+        if round_idx < len(ROUNDS) - 1:
+            col_parts.append(_bracket_connector_svg(slot_h, n_exp, CN_W))
+
+    bracket_html = (
+        f'<div style="display:flex;align-items:flex-start;min-width:max-content;">'
+        f'{"".join(col_parts)}</div>'
+    )
+
+    font = (
+        "<link rel='preconnect' href='https://fonts.googleapis.com'>"
+        "<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>"
+        "<link href='https://fonts.googleapis.com/css2?family=Barlow+Condensed"
+        ":wght@700&family=Barlow:wght@400;500&display=swap' rel='stylesheet'>"
+    )
+    css = (
+        "*{box-sizing:border-box;margin:0;padding:0}"
+        "body{background:#1B1D1F;font-family:'Barlow',sans-serif;overflow:hidden;}"
+        "#sw{width:100%;padding:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;"
+        "box-sizing:border-box;}"
+    )
+    natural = 5 * C_W + 4 * CN_W
+    js = (
+        "(function(){"
+        "var o=document.getElementById('bk-outer');"
+        "var w=document.getElementById('sw');"
+        f"var n={natural};"
+        "var m=0.75;"
+        "function fit(){"
+        "var a=w.clientWidth-32;"
+        "var s=Math.max(m,Math.min(1,a/n));"
+        "o.style.zoom=s<1?''+s:'';"
+        "}"
+        "window.addEventListener('resize',fit);"
+        "fit();"
+        "})();"
+    )
+    return (
+        f"<!DOCTYPE html><html><head><meta charset='UTF-8'>{font}"
+        f"<style>{css}</style></head><body>"
+        f"<div id='sw'>"
+        f"<div id='bk-outer'>"
+        f"{header_html}{bracket_html}"
+        f"</div>"
+        f"</div>"
+        f"<script>{js}</script>"
+        f"</body></html>"
+    )
+
+
+def render_group_standings() -> None:
+    """12-group grid (Group Stage) + knockout bracket tree (Knockout Bracket)."""
+    gs_tab, ko_tab = st.tabs(["Group Stage", "Knockout Bracket"])
+
+    with gs_tab:
+        try:
+            matches = fetch_match_predictions()
+            ko_payload = fetch_knockout_bracket()
+        except requests.RequestException as exc:
+            st.error(f"Couldn't reach the prediction API at {API_BASE_URL}: {exc}")
+        else:
+            # Build set of confirmed qualifiers from the R32 bracket
+            r32 = ko_payload.get("knockout_bracket", {}).get("R32", [])
+            qualified_teams: set[str] = set()
+            for m in r32:
+                if m.get("home"):
+                    qualified_teams.add(m["home"])
+                if m.get("away"):
+                    qualified_teams.add(m["away"])
+
+            # Index matches by group letter
+            group_matches: dict[str, list[dict]] = {letter: [] for letter in GROUPS}
+            for m in matches:
+                g = m.get("group")
+                if g and g in group_matches:
+                    group_matches[g].append(m)
+
+            st.markdown(
+                '<p class="wc-eyebrow">12 groups &middot; 48 teams &middot; '
+                'Real results for played matches, model predictions for upcoming fixtures.</p>',
+                unsafe_allow_html=True,
+            )
+
+            # Legend
+            st.markdown(
+                f'<div class="wc-legend" style="flex-wrap:wrap;gap:10px 20px;margin-bottom:12px;">'
+                f'<span><span style="display:inline-block;width:16px;height:16px;line-height:16px;'
+                f'text-align:center;font-size:9px;font-weight:800;border-radius:3px;'
+                f'background:{STATUS_OK};color:#0d2a1a;">Q</span>&nbsp;Qualified for R32</span>'
+                f'<span><span style="display:inline-block;width:16px;height:16px;line-height:16px;'
+                f'text-align:center;font-size:9px;font-weight:800;border-radius:3px;'
+                f'background:{GREY};color:#1a1a1a;">?</span>&nbsp;TBD</span>'
+                f'<span><span style="display:inline-block;width:16px;height:16px;line-height:16px;'
+                f'text-align:center;font-size:9px;font-weight:800;border-radius:3px;'
+                f'background:{RED};color:#2a0a06;">E</span>&nbsp;Eliminated</span>'
+                f'<span style="color:{TXT3};font-size:12px;">'
+                f'W/D/L &middot; GF/GA/GD &middot; Pts'
+                f'</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+            _stat_cols = ["W", "D", "L", "GF", "GA", "GD", "Pts"]
+            _col_w     = [24,  24,  24,  30,   30,   34,   32  ]
+
+            cards: list[str] = []
+            for letter, teams in GROUPS.items():
+                gm = group_matches[letter]
+                group_complete = len(gm) > 0 and all(m.get("status") == "played" for m in gm)
+
+                # Accumulate real results
+                stats: dict[str, dict] = {
+                    t: {"P": 0, "W": 0, "D": 0, "L": 0, "GF": 0, "GA": 0, "Pts": 0}
+                    for t in teams
+                }
+                for m in gm:
+                    if m.get("status") != "played":
+                        continue
+                    h, a = m["home"], m["away"]
+                    hs, as_ = int(m["home_score"]), int(m["away_score"])
+                    for t, gf, ga in ((h, hs, as_), (a, as_, hs)):
+                        if t not in stats:
+                            continue
+                        stats[t]["P"]  += 1
+                        stats[t]["GF"] += gf
+                        stats[t]["GA"] += ga
+                        if gf > ga:
+                            stats[t]["W"]   += 1
+                            stats[t]["Pts"] += 3
+                        elif gf == ga:
+                            stats[t]["D"]   += 1
+                            stats[t]["Pts"] += 1
+                        else:
+                            stats[t]["L"] += 1
+
+                ranked = sorted(
+                    teams,
+                    key=lambda t: (stats[t]["Pts"], stats[t]["GF"] - stats[t]["GA"], stats[t]["GF"]),
+                    reverse=True,
+                )
+
+                # Column header row
+                hdr_cells = "".join(
+                    f'<span style="min-width:{w}px;text-align:right;font-size:10px;'
+                    f'font-weight:700;letter-spacing:1px;color:{TXT3};">{c}</span>'
+                    for c, w in zip(_stat_cols, _col_w)
+                )
+                hdr = (
+                    f'<div style="display:flex;align-items:center;gap:2px;'
+                    f'padding:5px 8px 5px 4px;border-bottom:1px solid {CARD_BD};">'
+                    f'<span style="min-width:24px;flex-shrink:0;"></span>'
+                    f'<span style="width:28px;flex-shrink:0;"></span>'
+                    f'<span style="flex:1;"></span>'
+                    f'{hdr_cells}'
+                    f'</div>'
+                )
+
+                rows: list[str] = []
+                for t in ranked:
+                    s = stats[t]
+                    gd = s["GF"] - s["GA"]
+                    gd_str = f'+{gd}' if gd > 0 else str(gd)
+
+                    if t in qualified_teams:
+                        badge_bg, badge_c, badge_txt = STATUS_OK, "#0d2a1a", "Q"
+                    elif group_complete and t not in qualified_teams:
+                        badge_bg, badge_c, badge_txt = RED, "#2a0a06", "E"
+                    else:
+                        badge_bg, badge_c, badge_txt = GREY, "#1a1a1a", "?"
+
+                    badge = (
+                        f'<span style="display:inline-block;width:24px;height:24px;'
+                        f'line-height:24px;text-align:center;font-size:13px;font-weight:800;'
+                        f'border-radius:4px;background:{badge_bg};color:{badge_c};'
+                        f'flex-shrink:0;">{badge_txt}</span>'
+                    )
+
+                    vals = [s["W"], s["D"], s["L"], s["GF"], s["GA"], gd, s["Pts"]]
+                    stat_cells = "".join(
+                        f'<span style="min-width:{w}px;text-align:right;'
+                        f'font-size:13px;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;'
+                        f'color:{TXT if (col == "Pts" or v != 0) else TXT3};">'
+                        f'{gd_str if col == "GD" else v}</span>'
+                        for (col, w), v in zip(zip(_stat_cols, _col_w), vals)
+                    )
+
+                    rows.append(
+                        f'<div style="display:flex;align-items:center;gap:2px;'
+                        f'padding:8px 8px 8px 4px;" title="{html.escape(t)}">'
+                        f'{badge}'
+                        f'{flag_img(t, 24)}'
+                        f'<span style="flex:1;"></span>'
+                        f'{stat_cells}'
+                        f'</div>'
+                    )
+
+                cards.append(
+                    f'<div class="wc-group">'
+                    f'  <div class="wc-group-hd">'
+                    f'    <span class="wc-group-ltr">GROUP {letter}</span>'
+                    f'  </div>'
+                    f'  {hdr}'
+                    f'  {"".join(rows)}'
+                    f'</div>'
+                )
+
+            st.markdown(f'<div class="wc-groups">{"".join(cards)}</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="wc-foot">Standings from real played results &middot; '
+                'Q/E badges update when bracket data is confirmed &middot; '
+                'Tiebreakers: GD then GF.</div>',
+                unsafe_allow_html=True,
+            )
+
+    with ko_tab:
+        try:
+            ko_payload = fetch_knockout_bracket()
+            bracket    = ko_payload["knockout_bracket"]
+        except requests.RequestException as exc:
+            st.error(f"Couldn't reach the prediction API at {API_BASE_URL}: {exc}")
+        else:
+            st.markdown(
+                '<p class="wc-eyebrow">Left-to-right bracket &middot; '
+                '<span style="color:#9FD45B;font-weight:600;">Green border</span> = locked result &middot; '
+                'Percentages = model predictions for upcoming matches.</p>',
+                unsafe_allow_html=True,
+            )
+            components.html(_build_bracket_tree_html(bracket), height=1560, scrolling=False)
 
 
 # ---------------------------------------------------------------------------
@@ -1089,7 +1447,7 @@ def main() -> None:
     render_banner()
 
     tab1, tab2, tab3, tab4 = st.tabs(
-        ["Tournament Odds", "Match Predictor", "Group Standings", "Odds Tracker"]
+        ["Tournament Odds", "Match Predictor", "Standings & Bracket", "Odds Tracker"]
     )
     with tab1:
         render_tournament_odds()
