@@ -641,27 +641,66 @@ _KO_LABEL = {
 _KO_COLS = {"R32": 4, "R16": 4, "QF": 4, "SF": 2, "Final": 1}
 
 
+def _ko_team_label(name: str | None) -> str:
+    """Flag + name for a knockout participant, or a 'TBD' placeholder if undetermined."""
+    if not name:
+        return f'{flag_img("", 18)} <span class="wc-ko-nm wc-ko-tbd">TBD</span>'
+    return f'{flag_img(name, 18)} <span class="wc-ko-nm">{html.escape(name)}</span>'
+
+
 def _render_ko_match_card(match: dict) -> str:
-    """Return HTML for a single knockout match card with a 2-segment split bar."""
-    home, away = match["home"], match["away"]
+    """
+    Return HTML for a single knockout match card.
+
+    Played matches show the final score (with penalties when decided on spot-kicks) and a
+    winner badge; upcoming matches show the model win/loss split bar and the predicted team
+    expected to advance.
+    """
+    home, away = match.get("home"), match.get("away")
+    winner = match.get("winner")
+    teams_row = (
+        f'<div class="wc-ko-teams">'
+        f'{_ko_team_label(home)}'
+        f'<span class="wc-ko-vs">vs</span>'
+        f'{_ko_team_label(away)}'
+        f'</div>'
+    )
+
+    if match.get("status") == "played":
+        hs, as_ = match.get("home_score"), match.get("away_score")
+        hp, ap = match.get("home_pens"), match.get("away_pens")
+        pens = (f' <span class="wc-ko-pens">({hp}&ndash;{ap} pens)</span>'
+                if hp is not None and ap is not None else "")
+        score_html = (
+            f'<div class="wc-ko-score">'
+            f'<span class="t">{html.escape(home or "TBD")}</span>'
+            f'<span class="sc">{hs}&ndash;{as_}</span>'
+            f'<span class="t">{html.escape(away or "TBD")}</span>'
+            f'{pens}'
+            f'</div>'
+        )
+        badge = (
+            f'<div class="wc-ko-winner">{ball_svg(14)}'
+            f'<span><strong>{html.escape(winner)}</strong> advance</span></div>'
+            if winner else ""
+        )
+        return f'<div class="wc-ko-card wc-ko-played">{teams_row}{score_html}{badge}</div>'
+
+    # Scheduled / upcoming — model probability split bar + predicted advancer.
     ph, pa = match["p_home_win"], match["p_away_win"]
-    winner = home if ph >= pa else away
+    predicted = winner or (home if ph >= pa else away) or "TBD"
     return (
         f'<div class="wc-ko-card">'
-        f'  <div class="wc-ko-teams">'
-        f'    {flag_img(home, 18)} <span class="wc-ko-nm">{html.escape(home)}</span>'
-        f'    <span class="wc-ko-vs">vs</span>'
-        f'    {flag_img(away, 18)} <span class="wc-ko-nm">{html.escape(away)}</span>'
-        f'  </div>'
-        f'  <div class="wc-split">'
-        f'    <div style="width:{ph*100:.1f}%;background:{GREEN};color:#0d1f06;">{ph*100:.0f}%</div>'
-        f'    <div style="width:{pa*100:.1f}%;background:{GOLD};color:#2a1500;">{pa*100:.0f}%</div>'
-        f'  </div>'
-        f'  <div class="wc-splitlbl">'
-        f'    <span>{html.escape(home)}</span><span>{html.escape(away)}</span>'
-        f'  </div>'
-        f'  <div class="wc-ko-adv">{ball_svg(14)}'
-        f'  <span>Expected to advance: <strong>{html.escape(winner)}</strong></span></div>'
+        f'{teams_row}'
+        f'<div class="wc-split">'
+        f'<div style="width:{ph*100:.1f}%;background:{GREEN};color:#0d1f06;">{ph*100:.0f}%</div>'
+        f'<div style="width:{pa*100:.1f}%;background:{GOLD};color:#2a1500;">{pa*100:.0f}%</div>'
+        f'</div>'
+        f'<div class="wc-splitlbl">'
+        f'<span>{html.escape(home or "TBD")}</span><span>{html.escape(away or "TBD")}</span>'
+        f'</div>'
+        f'<div class="wc-ko-adv">{ball_svg(14)}'
+        f'<span>Expected to advance: <strong>{html.escape(predicted)}</strong></span></div>'
         f'</div>'
     )
 
@@ -670,11 +709,9 @@ def _render_ko_round(round_name: str, matches: list[dict]) -> None:
     """Render all matches for one knockout round as a responsive card grid."""
     label = _KO_LABEL.get(round_name, round_name)
     n_cols = _KO_COLS.get(round_name, 4)
-    n = len(matches)
-    noun = "match" if n == 1 else "matches"
     st.markdown(
-        f'<p class="wc-eyebrow">Expected {label} matchups — '
-        f'{n} {noun} based on most-likely group-stage outcomes.</p>',
+        f'<p class="wc-eyebrow">{label} — real results where matches are played, '
+        f'model predictions for upcoming and future-round matchups.</p>',
         unsafe_allow_html=True,
     )
     cards_html = "".join(_render_ko_match_card(m) for m in matches)

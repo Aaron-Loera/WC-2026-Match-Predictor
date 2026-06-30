@@ -81,6 +81,7 @@ football-data.org / FIFA Rankings CSV
 | `GET` | `/health` | Liveness check + model-loaded status |
 | `GET` | `/predictions/matches` | Win/draw/loss probabilities for all group-stage matches |
 | `GET` | `/predictions/tournament` | Monte Carlo tournament-win odds for all 48 teams |
+| `GET` | `/predictions/knockout` | Real knockout bracket with per-match probabilities and results |
 | `GET` | `/predictions/history` | Historical odds snapshots (odds tracker) |
 | `POST` | `/admin/retrain` | Trigger a manual retrain (bearer-token protected) |
 
@@ -168,7 +169,7 @@ wc2026-predictor/
 - **No data leakage** — all rolling features use `.shift(1)`; the same `build_feature_matrix()` call is safe for training and live inference.
 - **Single model load** — `api/dependencies.py` loads `models/model.pkl` once at FastAPI startup via a lifespan context manager. Do not load per-request.
 - **Simulator fidelity** — N=10,000 runs gives ~0.3% probability resolution. Do not reduce without good reason.
-- **predictions.json is the API contract** — schema must always include `generated_at`, `n_simulations`, `tournament_odds`, and `match_predictions`.
+- **predictions.json is the API contract** — schema must always include `generated_at`, `n_simulations`, `tournament_odds`, `match_predictions`, and `knockout_bracket`.
 
 ---
 

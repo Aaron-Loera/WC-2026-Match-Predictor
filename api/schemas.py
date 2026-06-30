@@ -18,11 +18,24 @@ class MatchPrediction(BaseModel):
 
 
 class KnockoutMatch(BaseModel):
-    """Win probabilities for a single knockout-stage match (no draw — extra time modeled as 50-50)."""
-    home: str
-    away: str
+    """
+    A single knockout-stage match from the real FIFA bracket.
+
+    `home`/`away` are real teams once determined, otherwise they're the predicted participants.
+    Played matches carry their final score, penalties, and real winner. Upcoming matches carry
+    model win/loss probabilities (no draws).
+    """
+    home: str | None = None
+    away: str | None = None
     p_home_win: float = Field(ge=0.0, le=1.0)
     p_away_win: float = Field(ge=0.0, le=1.0)
+    match_number: int | None = None
+    status: str = "scheduled"
+    winner: str | None = None
+    home_score: int | None = None
+    away_score: int | None = None
+    home_pens: int | None = None
+    away_pens: int | None = None
 
 
 class KnockoutBracketResponse(BaseModel):
@@ -47,6 +60,7 @@ class OddsHistoryEntry(BaseModel):
     """A single point-in-time snapshot of tournament odds, for tracking shifts over time."""
     generated_at: str
     tournament_odds: dict[str, float]
+    knockout_bracket: dict[str, list[KnockoutMatch]] | None = None
 
 
 # ---------------------------------------------------------------------------

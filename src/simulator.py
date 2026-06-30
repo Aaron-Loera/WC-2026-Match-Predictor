@@ -251,11 +251,11 @@ def _build_proba_cache(
     return cache
 
 
-def _prepare_simulation() -> tuple[dict[tuple[str, str], np.ndarray], dict[str, float], int]:
+def _prepare_simulation() -> tuple[dict[tuple[str, str], np.ndarray], dict[str, float], int, dict[int, dict]]:
     """
-    Prepare a one-time setup: load a model, fetch the data, compute team stats,
-    and cache match probabilities.
-    
+    Prepare a one-time setup: load a model, fetch the data, compute team stats, cache match
+    probabilities, lock real results, and parse the real knockout tree.
+
     Prints a warning statement for `cache_misses` if team pairs are absent from `proba_cache`
     indicating a team name mismatch causing a uniform-probability fallback for that pair.
 
@@ -263,19 +263,36 @@ def _prepare_simulation() -> tuple[dict[tuple[str, str], np.ndarray], dict[str, 
         None:
 
     Returns:
-        tuple: A 3-tuple containing (proba_cache, rank_lookups, cache_misses).
+        tuple: A 4-tuple containing (proba_cache, rank_lookup, cache_misses, knockout_tree).
     """
     # Load model and data
     model = load_model()
     prior, rankings, team_stats, h2h_lookup, completed = _load_and_prepare()
 
-    # Lock in completed WC2026 results so the simulator uses real outcomes
+    # Fetch full fixture list
+    fixtures = data.fetch_wc_fixtures()
+    tree = _parse_knockout_fixtures(fixtures)
+    
+    # Empty locked results
     _locked_results.clear()
-    for _, row in completed.iterrows():
-        lock_result(
-            str(row["home_team"]), str(row["away_team"]),
-            int(row["home_score"]), int(row["away_score"]),
-        )
+    
+    
+    if not fixtures.empty:
+        # Extract completed matches
+        finished = fixtures[
+            (fixtures["status"] == 0)
+            & fixtures["home_score"].notna()
+            & fixtures["away_score"].notna()
+        ]
+        # Lock real-world results
+        for _, row in finished.iterrows():
+            if isinstance(row["home_team"], str) and isinstance(row["away_team"], str):
+                lock_result(
+                    row["home_team"],
+                    row["away_team"],
+                    int(row["home_score"]),
+                    int(row["away_score"])
+                )
 
     # Create FIFA rank lookup
     rank_lookup = {
@@ -295,7 +312,7 @@ def _prepare_simulation() -> tuple[dict[tuple[str, str], np.ndarray], dict[str, 
     if cache_misses:
         print(f"WARNING: {cache_misses} team-pair(s) missing from proba_cache — uniform fallback active.")
 
-    return proba_cache, rank_lookup, cache_misses
+    return proba_cache, rank_lookup, cache_misses, tree
 
 
 # ---------------------------------------------------------------------------
@@ -414,46 +431,58 @@ def _run_monte_carlo(
     n: int,
     proba_cache: dict[tuple[str, str], np.ndarray],
     rank_lookup: dict[str, float],
+    tree: dict[int, dict] | None = None,
 ) -> tuple[dict[str, float], dict[tuple[str, str, int], int]]:
     """
     Run `n` Monte Carlo tournament simulations and compute tournament win probabilities
     for all teams.
 
-    Tallies how many times each team wins, then converts counts to win
-    probabilities. Execute `n` independent tournament simulations, each consisting of:
-    1. Simulating the group stage with all 72 group matches.
-    2. Selecting the 8 best third-place qualifiers.
-    3. Constructing the R32 knockout bracket.
-    4. Simulating all knockout rounds to determine a champion.
+    Once FIFA has determined the Round of 32 (group stage complete), each run advances the
+    real bracket tree via `simulate_knockout_tree()`. Played matches lock their real winner,
+    so eliminated teams correctly fall to ~0% title odds. Before the knockout is seeded, it
+    falls back to simulating the group stage and building the R32 bracket from those standings.
 
     Args:
         n: Number of Monte Carlo simulations to run.
         proba_cache: Pre-computed match probabilities from `_prepare_simulation()`.
         rank_lookup: Team FIFA rank lookups from `_prepare_simulation()`.
+        tree: Real knockout tree from `_parse_knockout_fixtures()` (None pre-knockout).
 
     Returns:
         tuple: Two-tuple containing (tournament_odds, finish_counts) where "tournament_odds"
-        maps teams to win probabilities.
+        maps teams to win probabilities and "finish_counts" is empty in the real-bracket path.
     """
     all_teams = [t for g in WC2026_GROUPS.values() for t in g]
     win_counts: dict[str, int] = defaultdict(int) # tournament wins
     finish_counts: dict[tuple[str, str, int], int] = defaultdict(int) # team ending in certain group place
     
+    # Check if FIFA knockout tree is available
+    r32_ready = tree is not None and _r32_resolved(tree)
+
     t0 = perf_counter()
-    print(f"Running {n:,} Monte Carlo simulations...")
-    
+    mode = "real bracket" if r32_ready else "simulated bracket"
+    print(f"Running {n:,} Monte Carlo simulations ({mode})...")
+
     for _ in range(n):
-        standings, points = simulate_group_stage(proba_cache, rank_lookup)
-        # Record each team's group-finish position for the expected-bracket builder
-        for group, ranked_teams in standings.items():
-            for pos, team in enumerate(ranked_teams):
-                finish_counts[(group, team, pos)] += 1
-                
-        third = _select_third_place_qualifiers(standings, points, rank_lookup)
-        bracket = _build_r32_bracket(standings, third)
-        champion = simulate_knockout(bracket, proba_cache)
-        win_counts[champion] += 1
-        
+        if r32_ready:
+            # Real bracket path, advance the real FIFA tree where played matches are locked
+            champion = simulate_knockout_tree(tree, None, proba_cache)
+        else:
+            # Simulated bracket path
+            standings, points = simulate_group_stage(proba_cache, rank_lookup)
+            
+            # Record each team's group-finish position for the expected-bracket builder
+            for group, ranked_teams in standings.items():
+                for pos, team in enumerate(ranked_teams):
+                    finish_counts[(group, team, pos)] += 1
+
+            third = _select_third_place_qualifiers(standings, points, rank_lookup)
+            bracket = _build_r32_bracket(standings, third)
+            champion = simulate_knockout(bracket, proba_cache)
+            
+        if champion:
+            win_counts[champion] += 1
+
     print(f"Completed {n:,} simulations in {perf_counter() - t0:.1f}s")
     return {team: round(win_counts[team] / n, 4) for team in all_teams}, dict(finish_counts)
 
@@ -545,8 +574,8 @@ def simulate_tournament(n: int=N_SIMULATIONS) -> dict[str, float]:
     Returns:
         dict: Tournament win probabilities.
     """
-    proba_cache, rank_lookup, _cache_misses = _prepare_simulation()
-    tournament_odds, _ = _run_monte_carlo(n, proba_cache, rank_lookup)
+    proba_cache, rank_lookup, _cache_misses, tree = _prepare_simulation()
+    tournament_odds, _ = _run_monte_carlo(n, proba_cache, rank_lookup, tree)
     return tournament_odds
 
 
@@ -588,11 +617,15 @@ def export_predictions(output_path: Path | str=PREDICTIONS_PATH) -> None:
     output_path = Path(output_path)
     
     # Prepare and run simulation
-    proba_cache, rank_lookup, cache_misses = _prepare_simulation()
-    tournament_odds, finish_counts = _run_monte_carlo(N_SIMULATIONS, proba_cache, rank_lookup)
-    knockout_bracket = _build_expected_knockout_bracket(proba_cache, finish_counts, rank_lookup)
+    proba_cache, rank_lookup, cache_misses, tree = _prepare_simulation()
+    tournament_odds, finish_counts = _run_monte_carlo(N_SIMULATIONS, proba_cache, rank_lookup, tree)
 
-    # Get match predictions for all 72 matches
+    if _r32_resolved(tree):
+        knockout_bracket = _build_real_knockout_bracket(proba_cache, tree)
+    else:
+        knockout_bracket = _build_expected_knockout_bracket(proba_cache, finish_counts, rank_lookup)
+
+    # Get match predictions/results for all 72 group matches
     match_predictions = []
     for teams in WC2026_GROUPS.values():
         for home, away in itertools.combinations(teams, 2):
@@ -659,6 +692,323 @@ def update_history(
 # ---------------------------------------------------------------------------
 # Private Helpers: Bracket Construction
 # ---------------------------------------------------------------------------
+
+# Compact FIFA stage names mapping
+ROUND_KEY: dict[str, str] = {
+    "Round of 32": "R32",
+    "Round of 16": "R16",
+    "Quarter-final": "QF",
+    "Semi-final": "SF",
+    "Final": "Final",
+}
+
+_THIRD_PLACE_MATCH = 103  # M103 = third-place playoff (excluded from bracket + champion path)
+
+
+def _int_or_none(v) -> int | None:
+    """Convert a pandas/NumPy scalar to a plain int, or None if it's missing (NA/NaN)."""
+    return None if pd.isna(v) else int(v)
+
+
+def _ko_proba(
+    home: str | None,
+    away: str | None,
+    proba_cache: dict[tuple[str, str], np.ndarray],
+) -> tuple[float, float]:
+    """   
+    Extract knockout-normalized win probabilities (p_home, p_away) excluding draws.
+    
+    Converts the model's 3-class group-stage probabilities (p_away, p_draw, p_home) into
+    knockout-specific odds by discarding the draw and re-normalizing over win/loss values
+    only. Returns (p_home_win, p_away_win). If either team is None/missing, or the matchup
+    is not in the cache, or both probabilities are near-zero, returns (0.5, 0.5) as a
+    fallback.
+    
+    Args:
+        home: Home team name or None if it's unresolved.
+        away: Away team name or None if it's unresolved.
+        proba_cache: Pre-computed match probabilities from `_prepare_simulations()`.
+        
+    Returns:
+        tuple: (p_home_win, p_away_win) as floats in the range [0.0, 1.0], summing to 1.0.
+    """
+    if not home or not away:
+        return (0.5, 0.5)
+    
+    proba = proba_cache.get((home, away))
+    if proba is None:
+        return (0.5, 0.5)
+    
+    p_win, p_loss = float(proba[2]), float(proba[0])
+    denom = p_win + p_loss
+    
+    if denom < 1e-9:
+        return (0.5, 0.5)
+    return round(p_win / denom, 4), round(p_loss / denom, 4)
+
+
+def _parse_knockout_fixtures(fixtures: pd.DataFrame) -> dict[int, dict]:
+    """
+    Parse the FIFA fixtures frame into a knockout tree keyed by match number.
+    
+    Extracts knockout matches (match numbers 73-104) from the full fixture list and 
+    organizes them into a structured tree. Each node stores bracket metadata, resolved
+    team names, scores, penalty scores, and the winning team ID mapped back to the team
+    name. Gracefully handles missing data and returns an empty dictionary if fixtures
+    is None or empty.
+
+    Args:
+        fixtures: Output of `data.fetch_wc_fixtures()`.
+
+    Returns:
+        dict: Knockout tree mapping match numbers to node dictionary. Empty if fixtures are unavailable.
+    """
+    tree: dict[int, dict] = {}
+    
+    if fixtures is None or fixtures.empty:
+        return tree
+
+    # Keep only knockout matches
+    ko = fixtures[fixtures["match_number"] >= 73]
+    
+    for _, r in ko.iterrows():
+        mn = int(r["match_number"])
+        home = r["home_team"] if isinstance(r["home_team"], str) else None
+        away = r["away_team"] if isinstance(r["away_team"], str) else None
+        home_id = r["home_id"] if isinstance(r["home_id"], str) else None
+        away_id = r["away_id"] if isinstance(r["away_id"], str) else None
+        winner_id = r["winner_id"] if isinstance(r["winner_id"], str) else None
+
+        # Map winner ID back to team name
+        winner = None
+        if winner_id:
+            if winner_id == home_id:
+                winner = home
+            elif winner_id == away_id:
+                winner = away
+
+        tree[mn] = {
+            "stage": r["stage"],
+            "slot_a": r["placeholder_a"] if isinstance(r["placeholder_a"], str) else None,
+            "slot_b": r["placeholder_b"] if isinstance(r["placeholder_b"], str) else None,
+            "home": home,
+            "away": away,
+            "status": _int_or_none(r["status"]),
+            "home_score": _int_or_none(r["home_score"]),
+            "away_score": _int_or_none(r["away_score"]),
+            "home_pens": _int_or_none(r["home_pens"]),
+            "away_pens": _int_or_none(r["away_pens"]),
+            "winner": winner,
+        }
+    return tree
+
+
+def _r32_resolved(tree: dict[int, dict]) -> bool:
+    """    
+    Check whether the Round of 32 bracket is fully resolved by FIFA.
+    
+    Returns true only when all 16 R32 matches have both hom and away participants named as
+    real teams, not placeholders. This indicates the group stage has concluded and FIFA has
+    published the complete knockout bracket.
+    
+    Args:
+        tree: Parsed knockout fixture tree from `_parse_knockout_fixtures()`.
+        
+    Returns:
+        bool: True if all R32 matches have both home and away teams resolved.
+    """
+    nodes = [tree.get(mn) for mn in range(73, 89)]
+    return all(n and n["home"] and n["away"] for n in nodes)
+
+
+def _resolve_slot(
+    slot: str | None,
+    mn: int,
+    side: str,
+    r32_participants: dict[int, tuple[str, str]] | None,
+    winners: dict[int, str | None],
+    losers: dict[int, str | None],
+) -> str | None:
+    """
+    Resolve a single bracket slot to a team name.
+
+    Bracket slots are placeholders that name a team by a rule rather than directly.
+    Three forms are understood: `W##` -> winner of match `##`; `RU##` -> the runner-up
+    (loser) of match `##`; and a group slot (`1E`/`2B`/`3ABCDF`) -> resolved via
+    `r32_participants`. Unresolved slots naturally stay empty until its feeder match is
+    played.
+    
+    Args:
+        slot: The placeholder label to resolve (e.g. "W77", "RU84").
+        mn: Match number this slot belongs to.
+        side: Which team to resolve ("a" for home, anything else for away)
+        r32_participants: Pre-knockout map of match number to (home, away) team names.
+        winners: Match numbers mapping to winning team.
+        losers: Match numbers mapping to losing team.
+        
+    Returns:
+        str | None: The resolved team name, or None if the slot is unresolved or undetermined.
+    """
+    if not slot:
+        return None
+    
+    # Handles runner-up references
+    if slot.startswith("RU") and slot[2:].isdigit():
+        return losers.get(int(slot[2:]))
+    
+    # Handles winner references
+    if slot.startswith("W") and slot[1:].isdigit():
+        return winners.get(int(slot[1:]))
+    
+    # Fallback for group-position slots that aren't winner/loser references
+    if r32_participants and mn in r32_participants:
+        h, a = r32_participants[mn]
+        return h if side == "a" else a
+    
+    return None
+
+
+def _resolve_bracket(
+    tree: dict[int, dict],
+    proba_cache: dict[tuple[str, str], np.ndarray],
+    r32_participants: dict[int, tuple[str, str]] | None,
+    decide,
+) -> tuple[dict[int, str | None], dict[int, str | None], dict[int, tuple[str | None, str | None]]]:
+    """
+    Walk the knockout tree in match order, resolving participants and advancing winners.
+
+    Participants come from FIFA's resolved names when available, else from the slot graph
+    via `_resolve_slot()`. A match with a real winner advances that team, this is how locked
+    real-world results enter the knockout. Otherwise `decide(home, away, proba_cache)` picks
+    the advancing team (argmax for the displayed bracket, sampled for Monte Carlo). If only
+    one team is resolved, the known side is carried forward and the match has no recorded loser.
+    
+    Args:
+        tree: Parse knockout tree from `_parse_knockout_fixtures()`.
+        proba_cache: Pre-computed match probabilities.
+        r32_participants: Pre-knockout R32 (home, away) map for group-slot resolution.
+        decide: Function used to decide the winning team (e.g `argmax`).
+
+    Returns:
+        tuple: Three dicts keyed by match number: (winners, losers, resolved_participants).
+    """
+    winners: dict[int, str | None] = {}
+    losers: dict[int, str | None] = {}
+    resolved: dict[int, tuple[str | None, str | None]] = {}
+
+    for mn in range(73, 105):
+        if mn == _THIRD_PLACE_MATCH:
+            continue
+        
+        node = tree.get(mn)
+        if node is None:
+            continue
+
+        # Fetch team names
+        home = node["home"] or _resolve_slot(node["slot_a"], mn, "a", r32_participants, winners, losers)
+        away = node["away"] or _resolve_slot(node["slot_b"], mn, "b", r32_participants, winners, losers)
+        resolved[mn] = (home, away)
+
+        if node["winner"]:
+            win = node["winner"]
+        elif home and away:
+            win = decide(home, away, proba_cache)
+        else:
+            win = home or away  # carry the known team forward
+
+        winners[mn] = win
+        losers[mn] = (away if win == home else home) if (home and away and win) else None
+
+    return winners, losers, resolved
+
+
+def _build_real_knockout_bracket(
+    proba_cache: dict[tuple[str, str], np.ndarray],
+    tree: dict[int, dict],
+    r32_participants: dict[int, tuple[str, str]] | None = None,
+) -> dict[str, list[dict]]:
+    """
+    Build the displayed knockout bracket from the real FIFA tree.
+
+    Resolves every match's participants (real where known, predicted via `argmax` otherwise),
+    attaches model win/loss probabilities, and flags played matches with their final score,
+    penalties, and real winner. Returns a dict keyed by `R32`/`R16`/`QF`/`SF`/`Final`.
+    
+    Args:
+        proba_cache: Pre-computed match probabilities from `_prepare_simulation()`.
+        tree: Parse knockout tree from `_parse_knockout_fixtures()`.
+        r32_participants: Pre-knockout R32 (home, away) map for group-slot resolution.
+        
+    Returns:
+        dict: Keyed by round name where each value is a list of match dictionaries.
+    """
+    def _argmax(home: str, away: str, pc: dict[tuple[str, str], np.ndarray]) -> str:
+        """A local decision function for unplayed matches. Returns the most likely winner."""
+        ph, pa = _ko_proba(home, away, pc)
+        return home if ph >= pa else away
+
+    winners, _losers, resolved = _resolve_bracket(tree, proba_cache, r32_participants, _argmax)
+
+    bracket: dict[str, list[dict]] = {key: [] for key in ("R32", "R16", "QF", "SF", "Final")}
+    for mn in range(73, 105):
+        if mn == _THIRD_PLACE_MATCH:
+            continue
+        
+        node = tree.get(mn)
+        if node is None:
+            continue
+        
+        key = ROUND_KEY.get(node["stage"])
+        if key is None:
+            continue
+        
+        home, away = resolved[mn]
+        ph, pa = _ko_proba(home, away, proba_cache)
+        played = node["winner"] is not None
+        
+        bracket[key].append({
+            "match_number": mn,
+            "home": home,
+            "away": away,
+            "p_home_win": ph,
+            "p_away_win": pa,
+            "status": "played" if played else "scheduled",
+            "winner": winners[mn],
+            "home_score": node["home_score"],
+            "away_score": node["away_score"],
+            "home_pens": node["home_pens"],
+            "away_pens": node["away_pens"],
+        })
+    return bracket
+
+
+def simulate_knockout_tree(
+    tree: dict[int, dict],
+    r32_participants: dict[int, tuple[str, str]] | None,
+    proba_cache: dict[tuple[str, str], np.ndarray],
+) -> str | None:
+    """
+    Simulate one knockout run over the real FIFA tree and return the sampled champion.
+
+    Walks the entire knockout fixture tree in order, using real results for matches
+    that have already been played and sampling winners via the model for undecided
+    matches. Played matches lock their real winner, so eliminated teams can never be
+    champion even if randomly sampled. This ensures the bracket always advances forward
+    from its current state rather than rewriting history.
+    
+    Args:
+        tree: Parse knockout tree from `_parse_knockout_fixtures()`.
+        r32_participants: Pre-knockout R32 (home, away) map for group-slot resolution.
+        proba_cache: Pre-computed match probabilities from `_prepare_simulation()`.
+        
+    Returns:
+        str | None: The name of the sampled tournament champion or None if it couldn't be sampled.
+    """
+    winners, _losers, _resolved = _resolve_bracket(
+        tree, proba_cache, r32_participants, _sample_knockout_winner
+    )
+    return winners.get(104)
+
 
 def _derive_expected_standings(
     finish_counts: dict[tuple[str, str, int], int],
@@ -731,27 +1081,16 @@ def _build_expected_knockout_bracket(
     third = _select_third_place_qualifiers(standings, expected_points, rank_lookup)
     r32_pairs = _build_r32_bracket(standings, third)
 
-    def _ko_proba(home: str, away: str) -> tuple[float, float]:
-        """Extract knockout-normalized probabilities (p_home, p_away)."""
-        proba = proba_cache.get((home, away))
-        if proba is None:
-            return 0.5, 0.5
-        p_win, p_loss = float(proba[2]), float(proba[0])
-        denom = p_win + p_loss
-        if denom < 1e-9:
-            return 0.5, 0.5
-        return round(p_win / denom, 4), round(p_loss / denom, 4)
-
     bracket: dict[str, list[dict]] = {}
     current_pairs = r32_pairs
-    
+
     for round_name in ["R32", "R16", "QF", "SF", "Final"]:
         matches: list[dict] = []
         winners: list[str] = []
-        
+
         # Compute probabilities and record winner
         for home, away in current_pairs:
-            ph, pa = _ko_proba(home, away)
+            ph, pa = _ko_proba(home, away, proba_cache)
             matches.append({"home": home, "away": away, "p_home_win": ph, "p_away_win": pa})
             winners.append(home if ph >= pa else away)
             
@@ -829,8 +1168,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run WC2026 Monte Carlo simulator.")
     parser.add_argument("--simulate", action="store_true", help="Run simulation and print top-10 odds")
     parser.add_argument("--export", action="store_true", help="Write predictions.json (requires --simulate)")
-    parser.add_argument("--update-history", action="store_true",
-                         help="Append a snapshot to odds_history.json from predictions.json (run after --export)")
+    parser.add_argument(
+        "--update-history",
+        action="store_true",
+        help="Append a snapshot to odds_history.json from predictions.json (run after --export)"
+    )
     args = parser.parse_args()
 
     # Run the complete pipeline

@@ -1,55 +1,55 @@
 {
-  "generated_at": "2026-06-29T20:23:58.849681+00:00",
+  "generated_at": "2026-06-30T00:38:14.216674+00:00",
   "n_simulations": 10000,
   "cache_misses": 0,
   "tournament_odds": {
-    "Mexico": 0.0328,
+    "Mexico": 0.0202,
     "South Africa": 0.0,
     "Korea Republic": 0.0,
     "Czechia": 0.0,
-    "Canada": 0.0047,
-    "Bosnia and Herzegovina": 0.0001,
+    "Canada": 0.0054,
+    "Bosnia and Herzegovina": 0.0009,
     "Qatar": 0.0,
-    "Switzerland": 0.0197,
-    "Brazil": 0.0544,
-    "Morocco": 0.0243,
+    "Switzerland": 0.025,
+    "Brazil": 0.091,
+    "Morocco": 0.0174,
     "Haiti": 0.0,
-    "Scotland": 0.003,
-    "USA": 0.0009,
-    "Paraguay": 0.0012,
-    "Australia": 0.0022,
-    "Turkey": 0.0138,
-    "Germany": 0.041,
+    "Scotland": 0.0,
+    "USA": 0.0016,
+    "Paraguay": 0.0074,
+    "Australia": 0.0094,
+    "Turkey": 0.0,
+    "Germany": 0.0,
     "Curaçao": 0.0,
-    "Ivory Coast": 0.002,
-    "Ecuador": 0.0388,
-    "Netherlands": 0.0293,
+    "Ivory Coast": 0.0051,
+    "Ecuador": 0.0135,
+    "Netherlands": 0.0653,
     "Japan": 0.0,
-    "Sweden": 0.0013,
+    "Sweden": 0.0009,
     "Tunisia": 0.0,
-    "Belgium": 0.0606,
-    "Egypt": 0.0024,
+    "Belgium": 0.0735,
+    "Egypt": 0.0017,
     "IR Iran": 0.0,
     "New Zealand": 0.0,
-    "Spain": 0.13,
+    "Spain": 0.1069,
     "Cape Verde": 0.0,
-    "Saudi Arabia": 0.0001,
-    "Uruguay": 0.0117,
-    "France": 0.0866,
-    "Senegal": 0.0045,
+    "Saudi Arabia": 0.0,
+    "Uruguay": 0.0,
+    "France": 0.0801,
+    "Senegal": 0.0059,
     "Iraq": 0.0,
-    "Norway": 0.0051,
-    "Argentina": 0.1752,
-    "Algeria": 0.0025,
-    "Austria": 0.0031,
+    "Norway": 0.0113,
+    "Argentina": 0.1948,
+    "Algeria": 0.0059,
+    "Austria": 0.0034,
     "Jordan": 0.0,
-    "Portugal": 0.0504,
-    "Congo DR": 0.0002,
+    "Portugal": 0.0415,
+    "Congo DR": 0.0,
     "Uzbekistan": 0.0,
-    "Colombia": 0.0579,
-    "England": 0.1164,
-    "Croatia": 0.0233,
-    "Ghana": 0.0005,
+    "Colombia": 0.0734,
+    "England": 0.1225,
+    "Croatia": 0.0159,
+    "Ghana": 0.0001,
     "Panama": 0.0
   },
   "match_predictions": [
@@ -196,9 +196,9 @@
     {
       "home": "USA",
       "away": "Turkey",
-      "p_home_win": 0.1651,
-      "p_draw": 0.3,
-      "p_away_win": 0.535
+      "p_home_win": 0.0,
+      "p_draw": 0.0,
+      "p_away_win": 1.0
     },
     {
       "home": "Paraguay",
@@ -210,16 +210,16 @@
     {
       "home": "Paraguay",
       "away": "Turkey",
-      "p_home_win": 0.2414,
-      "p_draw": 0.4074,
-      "p_away_win": 0.3513
+      "p_home_win": 1.0,
+      "p_draw": 0.0,
+      "p_away_win": 0.0
     },
     {
       "home": "Australia",
       "away": "Turkey",
-      "p_home_win": 0.227,
-      "p_draw": 0.4054,
-      "p_away_win": 0.3676
+      "p_home_win": 1.0,
+      "p_draw": 0.0,
+      "p_away_win": 0.0
     },
     {
       "home": "Germany",
@@ -231,9 +231,9 @@
     {
       "home": "Germany",
       "away": "Ivory Coast",
-      "p_home_win": 0.428,
-      "p_draw": 0.3706,
-      "p_away_win": 0.2014
+      "p_home_win": 1.0,
+      "p_draw": 0.0,
+      "p_away_win": 0.0
     },
     {
       "home": "Germany",
@@ -245,9 +245,9 @@
     {
       "home": "Curaçao",
       "away": "Ivory Coast",
-      "p_home_win": 0.1109,
-      "p_draw": 0.2976,
-      "p_away_win": 0.5915
+      "p_home_win": 0.0,
+      "p_draw": 0.0,
+      "p_away_win": 1.0
     },
     {
       "home": "Curaçao",
@@ -259,9 +259,9 @@
     {
       "home": "Ivory Coast",
       "away": "Ecuador",
-      "p_home_win": 0.1808,
-      "p_draw": 0.3203,
-      "p_away_win": 0.4989
+      "p_home_win": 1.0,
+      "p_draw": 0.0,
+      "p_away_win": 0.0
     },
     {
       "home": "Netherlands",
@@ -350,9 +350,9 @@
     {
       "home": "Spain",
       "away": "Cape Verde",
-      "p_home_win": 0.6084,
-      "p_draw": 0.276,
-      "p_away_win": 0.1156
+      "p_home_win": 0.0,
+      "p_draw": 1.0,
+      "p_away_win": 0.0
     },
     {
       "home": "Spain",
@@ -371,16 +371,16 @@
     {
       "home": "Cape Verde",
       "away": "Saudi Arabia",
-      "p_home_win": 0.3163,
-      "p_draw": 0.3609,
-      "p_away_win": 0.3228
+      "p_home_win": 0.0,
+      "p_draw": 1.0,
+      "p_away_win": 0.0
     },
     {
       "home": "Cape Verde",
       "away": "Uruguay",
-      "p_home_win": 0.1232,
-      "p_draw": 0.2562,
-      "p_away_win": 0.6206
+      "p_home_win": 0.0,
+      "p_draw": 1.0,
+      "p_away_win": 0.0
     },
     {
       "home": "Saudi Arabia",
@@ -561,198 +561,415 @@
   "knockout_bracket": {
     "R32": [
       {
+        "match_number": 73,
         "home": "South Africa",
         "away": "Canada",
         "p_home_win": 0.3112,
-        "p_away_win": 0.6888
+        "p_away_win": 0.6888,
+        "status": "played",
+        "winner": "Canada",
+        "home_score": 0,
+        "away_score": 1,
+        "home_pens": null,
+        "away_pens": null
       },
       {
-        "home": "Ecuador",
-        "away": "Senegal",
-        "p_home_win": 0.6222,
-        "p_away_win": 0.3778
+        "match_number": 74,
+        "home": "Germany",
+        "away": "Paraguay",
+        "p_home_win": 0.6532,
+        "p_away_win": 0.3468,
+        "status": "played",
+        "winner": "Paraguay",
+        "home_score": 1,
+        "away_score": 1,
+        "home_pens": 3,
+        "away_pens": 4
       },
       {
+        "match_number": 75,
         "home": "Netherlands",
         "away": "Morocco",
         "p_home_win": 0.6127,
-        "p_away_win": 0.3873
+        "p_away_win": 0.3873,
+        "status": "scheduled",
+        "winner": "Netherlands",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 76,
         "home": "Brazil",
         "away": "Japan",
         "p_home_win": 0.4493,
-        "p_away_win": 0.5507
+        "p_away_win": 0.5507,
+        "status": "played",
+        "winner": "Brazil",
+        "home_score": 2,
+        "away_score": 1,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 77,
         "home": "France",
-        "away": "Australia",
-        "p_home_win": 0.6887,
-        "p_away_win": 0.3113
-      },
-      {
-        "home": "Germany",
-        "away": "Norway",
-        "p_home_win": 0.6578,
-        "p_away_win": 0.3422
-      },
-      {
-        "home": "Mexico",
-        "away": "Scotland",
-        "p_home_win": 0.6414,
-        "p_away_win": 0.3586
-      },
-      {
-        "home": "England",
-        "away": "Algeria",
-        "p_home_win": 0.6968,
-        "p_away_win": 0.3032
-      },
-      {
-        "home": "USA",
         "away": "Sweden",
-        "p_home_win": 0.31,
-        "p_away_win": 0.69
+        "p_home_win": 0.7218,
+        "p_away_win": 0.2782,
+        "status": "scheduled",
+        "winner": "France",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 78,
+        "home": "Ivory Coast",
+        "away": "Norway",
+        "p_home_win": 0.3907,
+        "p_away_win": 0.6093,
+        "status": "scheduled",
+        "winner": "Norway",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
+      },
+      {
+        "match_number": 79,
+        "home": "Mexico",
+        "away": "Ecuador",
+        "p_home_win": 0.4488,
+        "p_away_win": 0.5512,
+        "status": "scheduled",
+        "winner": "Ecuador",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
+      },
+      {
+        "match_number": 80,
+        "home": "England",
+        "away": "Congo DR",
+        "p_home_win": 0.8961,
+        "p_away_win": 0.1039,
+        "status": "scheduled",
+        "winner": "England",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
+      },
+      {
+        "match_number": 81,
+        "home": "USA",
+        "away": "Bosnia and Herzegovina",
+        "p_home_win": 0.3187,
+        "p_away_win": 0.6813,
+        "status": "scheduled",
+        "winner": "Bosnia and Herzegovina",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
+      },
+      {
+        "match_number": 82,
         "home": "Belgium",
-        "away": "Ivory Coast",
-        "p_home_win": 0.6576,
-        "p_away_win": 0.3424
+        "away": "Senegal",
+        "p_home_win": 0.641,
+        "p_away_win": 0.359,
+        "status": "scheduled",
+        "winner": "Belgium",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 83,
         "home": "Portugal",
         "away": "Croatia",
         "p_home_win": 0.4599,
-        "p_away_win": 0.5401
+        "p_away_win": 0.5401,
+        "status": "scheduled",
+        "winner": "Croatia",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 84,
         "home": "Spain",
         "away": "Austria",
         "p_home_win": 0.7027,
-        "p_away_win": 0.2973
+        "p_away_win": 0.2973,
+        "status": "scheduled",
+        "winner": "Spain",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 85,
         "home": "Switzerland",
-        "away": "Bosnia and Herzegovina",
-        "p_home_win": 0.7626,
-        "p_away_win": 0.2374
+        "away": "Algeria",
+        "p_home_win": 0.5059,
+        "p_away_win": 0.4941,
+        "status": "scheduled",
+        "winner": "Switzerland",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 86,
         "home": "Argentina",
-        "away": "Uruguay",
-        "p_home_win": 0.6651,
-        "p_away_win": 0.3349
+        "away": "Cape Verde",
+        "p_home_win": 0.8582,
+        "p_away_win": 0.1418,
+        "status": "scheduled",
+        "winner": "Argentina",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 87,
         "home": "Colombia",
         "away": "Ghana",
         "p_home_win": 0.8168,
-        "p_away_win": 0.1832
+        "p_away_win": 0.1832,
+        "status": "scheduled",
+        "winner": "Colombia",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
-        "home": "Turkey",
+        "match_number": 88,
+        "home": "Australia",
         "away": "Egypt",
-        "p_home_win": 0.6894,
-        "p_away_win": 0.3106
+        "p_home_win": 0.6109,
+        "p_away_win": 0.3891,
+        "status": "scheduled",
+        "winner": "Australia",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       }
     ],
     "R16": [
       {
+        "match_number": 89,
+        "home": "Paraguay",
+        "away": "France",
+        "p_home_win": 0.2224,
+        "p_away_win": 0.7776,
+        "status": "scheduled",
+        "winner": "France",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
+      },
+      {
+        "match_number": 90,
         "home": "Canada",
-        "away": "Ecuador",
-        "p_home_win": 0.2446,
-        "p_away_win": 0.7554
+        "away": "Netherlands",
+        "p_home_win": 0.2096,
+        "p_away_win": 0.7904,
+        "status": "scheduled",
+        "winner": "Netherlands",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
-        "home": "Netherlands",
-        "away": "Japan",
-        "p_home_win": 0.4323,
-        "p_away_win": 0.5677
+        "match_number": 91,
+        "home": "Brazil",
+        "away": "Norway",
+        "p_home_win": 0.6712,
+        "p_away_win": 0.3288,
+        "status": "scheduled",
+        "winner": "Brazil",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
-        "home": "France",
-        "away": "Germany",
-        "p_home_win": 0.4286,
-        "p_away_win": 0.5714
-      },
-      {
-        "home": "Mexico",
+        "match_number": 92,
+        "home": "Ecuador",
         "away": "England",
-        "p_home_win": 0.3368,
-        "p_away_win": 0.6632
+        "p_home_win": 0.3543,
+        "p_away_win": 0.6457,
+        "status": "scheduled",
+        "winner": "England",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
-        "home": "Sweden",
-        "away": "Belgium",
-        "p_home_win": 0.2134,
-        "p_away_win": 0.7866
-      },
-      {
+        "match_number": 93,
         "home": "Croatia",
         "away": "Spain",
         "p_home_win": 0.256,
-        "p_away_win": 0.744
+        "p_away_win": 0.744,
+        "status": "scheduled",
+        "winner": "Spain",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
+        "match_number": 94,
+        "home": "Bosnia and Herzegovina",
+        "away": "Belgium",
+        "p_home_win": 0.1447,
+        "p_away_win": 0.8553,
+        "status": "scheduled",
+        "winner": "Belgium",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
+      },
+      {
+        "match_number": 95,
+        "home": "Argentina",
+        "away": "Australia",
+        "p_home_win": 0.7401,
+        "p_away_win": 0.2599,
+        "status": "scheduled",
+        "winner": "Argentina",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
+      },
+      {
+        "match_number": 96,
         "home": "Switzerland",
-        "away": "Argentina",
-        "p_home_win": 0.2284,
-        "p_away_win": 0.7716
-      },
-      {
-        "home": "Colombia",
-        "away": "Turkey",
-        "p_home_win": 0.6026,
-        "p_away_win": 0.3974
+        "away": "Colombia",
+        "p_home_win": 0.3516,
+        "p_away_win": 0.6484,
+        "status": "scheduled",
+        "winner": "Colombia",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       }
     ],
     "QF": [
       {
-        "home": "Ecuador",
-        "away": "Japan",
-        "p_home_win": 0.3358,
-        "p_away_win": 0.6642
+        "match_number": 97,
+        "home": "France",
+        "away": "Netherlands",
+        "p_home_win": 0.4184,
+        "p_away_win": 0.5816,
+        "status": "scheduled",
+        "winner": "Netherlands",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
-        "home": "Germany",
+        "match_number": 98,
+        "home": "Spain",
+        "away": "Belgium",
+        "p_home_win": 0.5377,
+        "p_away_win": 0.4623,
+        "status": "scheduled",
+        "winner": "Spain",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
+      },
+      {
+        "match_number": 99,
+        "home": "Brazil",
         "away": "England",
-        "p_home_win": 0.4284,
-        "p_away_win": 0.5716
+        "p_home_win": 0.3575,
+        "p_away_win": 0.6425,
+        "status": "scheduled",
+        "winner": "England",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
-        "home": "Belgium",
-        "away": "Spain",
-        "p_home_win": 0.33,
-        "p_away_win": 0.67
-      },
-      {
+        "match_number": 100,
         "home": "Argentina",
         "away": "Colombia",
         "p_home_win": 0.6191,
-        "p_away_win": 0.3809
+        "p_away_win": 0.3809,
+        "status": "scheduled",
+        "winner": "Argentina",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       }
     ],
     "SF": [
       {
-        "home": "Japan",
-        "away": "England",
-        "p_home_win": 0.3727,
-        "p_away_win": 0.6273
+        "match_number": 101,
+        "home": "Netherlands",
+        "away": "Spain",
+        "p_home_win": 0.3526,
+        "p_away_win": 0.6474,
+        "status": "scheduled",
+        "winner": "Spain",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       },
       {
-        "home": "Spain",
+        "match_number": 102,
+        "home": "England",
         "away": "Argentina",
-        "p_home_win": 0.419,
-        "p_away_win": 0.581
+        "p_home_win": 0.3411,
+        "p_away_win": 0.6589,
+        "status": "scheduled",
+        "winner": "Argentina",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       }
     ],
     "Final": [
       {
-        "home": "England",
+        "match_number": 104,
+        "home": "Spain",
         "away": "Argentina",
-        "p_home_win": 0.3411,
-        "p_away_win": 0.6589
+        "p_home_win": 0.419,
+        "p_away_win": 0.581,
+        "status": "scheduled",
+        "winner": "Argentina",
+        "home_score": null,
+        "away_score": null,
+        "home_pens": null,
+        "away_pens": null
       }
     ]
   }

@@ -49,10 +49,11 @@ def save_history(history: list[dict], path: Path = HISTORY_PATH) -> None:
 
 def record_snapshot(predictions: dict, history: list[dict]) -> list[dict]:
     """
-    Append a deduplicated {generated_at, tournament_odds} snapshot if `predictions` is new.
+    Append a deduplicated {generated_at, tournament_odds, knockout_bracket} snapshot if new.
 
     Compares the "generated_at" timestamp in the current predictions against the most recent
-    snapshot in history.
+    snapshot in history. The resolved knockout bracket is persisted alongside the odds so the
+    odds tracker can reference bracket evolution over time.
 
     Args:
         predictions: The freshly loaded predictions payload.
@@ -68,5 +69,9 @@ def record_snapshot(predictions: dict, history: list[dict]) -> list[dict]:
         return history
 
     # Create and return new snapshot
-    snapshot = {"generated_at": new_ts, "tournament_odds": predictions["tournament_odds"]}
+    snapshot = {
+        "generated_at": new_ts,
+        "tournament_odds": predictions["tournament_odds"],
+        "knockout_bracket": predictions.get("knockout_bracket"),
+    }
     return history + [snapshot]

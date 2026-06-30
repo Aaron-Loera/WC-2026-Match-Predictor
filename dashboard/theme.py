@@ -180,6 +180,18 @@ def inject_theme() -> None:
           font-size:13px;color:#CDE6A8;background:var(--wc-gtint);
           border-radius:7px;padding:8px 12px}
         .wc-ko-adv strong{color:var(--wc-gtxt)}
+        .wc-ko-tbd{color:var(--wc-txt3);font-style:italic}
+        /* Played matches: final score + winner badge */
+        .wc-ko-played{border-color:var(--wc-gline)}
+        .wc-ko-score{display:flex;align-items:center;justify-content:center;
+          flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+        .wc-ko-score .t{font-size:13px;color:var(--wc-txt2)}
+        .wc-ko-score .sc{font-family:'Barlow Condensed',sans-serif;font-size:30px;
+          font-weight:800;color:var(--wc-txt);line-height:1;letter-spacing:1px}
+        .wc-ko-pens{font-size:12px;color:var(--wc-txt3);width:100%;text-align:center}
+        .wc-ko-winner{display:flex;align-items:center;gap:8px;font-size:13px;
+          color:#CDE6A8;background:var(--wc-gtint);border-radius:7px;padding:8px 12px}
+        .wc-ko-winner strong{color:var(--wc-gtxt)}
 
         /* === GROUP STANDINGS === */
         .wc-groups{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
