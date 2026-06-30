@@ -91,6 +91,47 @@ _WC_RESULTS_SCHEMA = {
     "match_id": "object",
 }
 
+# Maps differing FIFA v3 API team names to internal WC2026_GROUPS names
+_FIFA_NAME_FIXES: dict[str, str] = {
+    "Cabo Verde": "Cape Verde",
+    "Côte d'Ivoire": "Ivory Coast",
+    "Türkiye": "Turkey",
+}
+
+# Full fixture list for bracket construction
+_WC_FIXTURES_SCHEMA = {
+    "match_number": "Int64",
+    "stage": "object",
+    "id_stage": "object",
+    "status": "Int64",
+    "placeholder_a": "object",
+    "placeholder_b": "object",
+    "home_team": "object",
+    "away_team": "object",
+    "home_id": "object",
+    "away_id": "object",
+    "home_score": "Int64",
+    "away_score": "Int64",
+    "home_pens": "Int64",
+    "away_pens": "Int64",
+    "winner_id": "object",
+}
+
+
+def _norm_team(name: str | None) -> str | None:
+    """
+    Map a FIFA v3 API team name to our internal name, or pass it through unchanged.
+    
+    Args:
+        name: The raw FIFA v3 API team name.
+        
+    Returns:
+        str | None: The internal team name.
+    """
+    if name is None:
+        return None
+    return _FIFA_NAME_FIXES.get(name, name)
+
 
 def _is_stale(path: Path, max_age_seconds: float) -> bool:
     """
@@ -293,8 +334,8 @@ def fetch_wc_results() -> pd.DataFrame:
         try:
             rows.append({
                 "date": pd.to_datetime(m["Date"], errors="coerce", utc=True).tz_localize(None),
-                "home_team": m["Home"]["TeamName"][0]["Description"],
-                "away_team": m["Away"]["TeamName"][0]["Description"],
+                "home_team": _norm_team(m["Home"]["TeamName"][0]["Description"]),
+                "away_team": _norm_team(m["Away"]["TeamName"][0]["Description"]),
                 "home_score": m["HomeTeamScore"],
                 "away_score": m["AwayTeamScore"],
                 "stage": m["StageName"][0]["Description"] if m.get("StageName") else "",
@@ -318,8 +359,127 @@ def fetch_wc_results() -> pd.DataFrame:
 
 
 def _empty_wc_df() -> pd.DataFrame:
-    """Returns an empty DataFrame with pre-established dtypes."""
+    """
+    Returns an empty DataFrame with pre-established dtypes.
+    
+    Args:
+        None:
+        
+    Returns:
+        pd.DataFrame: An empty DataFrame.
+    """
     return pd.DataFrame({col: pd.Series(dtype=dtype) for col, dtype in _WC_RESULTS_SCHEMA.items()})
+
+
+def _empty_fixtures_df() -> pd.DataFrame:
+    """
+    Returns an empty fixtures DataFrame with pre-established dtypes.
+    
+    Args:
+        None:
+        
+    Returns:
+        pd.DataFrame: Empty DataFrame.
+    """
+    return pd.DataFrame({col: pd.Series(dtype=dtype) for col, dtype in _WC_FIXTURES_SCHEMA.items()})
+
+
+def _side_name(side: dict | None) -> str | None:
+    """
+    Extract a normalized team name from a FIFA Home/Away side object, or None if unresolved.
+    
+    Args:
+        side: A FIFA API Home or Away side object.
+        
+    Returns:
+        str | None: The normalize team name or None.
+    """
+    if not side:
+        return None
+    names = side.get("TeamName") or []
+    if not names:
+        return None
+    return _norm_team(names[0].get("Description"))
+
+
+def fetch_wc_fixtures() -> pd.DataFrame:
+    """
+    Fetch the full FIFA World Cup 2026 fixture list — group AND knockout matches.
+
+    Return all 64 matches (72 group stage + unplayed knockouts), including unresolved bracket
+    placeholders, resolved team names, scores, penalty outcomes, and stage info. Unlike
+    `fetch_wc_results()` (which returns only completed matches), this is used to reconstruct
+    the real knockout bracket in real-time as the tournament progresses. Returns a cached copy
+    if it's not stale. If the HTTP request fails, an empty DataFrame
+    with the fixtures schema is returned.
+
+    Args:
+        None:
+
+    Returns:
+        pd.DataFrame: Columns per `_WC_FIXTURES_SCHEMA`. Team names normalized to internal names.
+    """
+    cache = RAW_DIR / "wc2026_fixtures.parquet"
+    max_age = WC_STALENESS_HOURS * 3600
+
+    # Returns parquet file if cache isn't stale
+    if not _is_stale(cache, max_age):
+        return pd.read_parquet(cache, engine="auto")
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json",
+    }
+
+    try:
+        # Attempt to fetch the match calendar
+        response = requests.get(_WC2026_API_URL, headers=headers, timeout=30)
+        response.raise_for_status()
+        payload = response.json()
+    except (requests.RequestException, ValueError):
+        # Return empty frame if the request/JSON decode fails        
+        return _empty_fixtures_df()
+
+    rows: list[dict] = []
+    
+    for m in payload.get("Results", []):
+        try:
+            home, away = m.get("Home"), m.get("Away")
+            rows.append({
+                "match_number": m.get("MatchNumber"),
+                "stage": m["StageName"][0]["Description"] if m.get("StageName") else "",
+                "id_stage": str(m.get("IdStage", "")),
+                "status": m.get("MatchStatus"),
+                "placeholder_a": m.get("PlaceHolderA"),
+                "placeholder_b": m.get("PlaceHolderB"),
+                "home_team": _side_name(home),
+                "away_team": _side_name(away),
+                "home_id": str(home.get("IdTeam")) if home and home.get("IdTeam") else None,
+                "away_id": str(away.get("IdTeam")) if away and away.get("IdTeam") else None,
+                "home_score": m.get("HomeTeamScore"),
+                "away_score": m.get("AwayTeamScore"),
+                "home_pens": m.get("HomeTeamPenaltyScore"),
+                "away_pens": m.get("AwayTeamPenaltyScore"),
+                "winner_id": str(m["Winner"]) if m.get("Winner") else None,
+            })
+        except (KeyError, IndexError, TypeError):
+            continue
+
+    if not rows:
+        df = _empty_fixtures_df()
+    else:
+        # Create and st
+        df = pd.DataFrame(rows)
+        for col in ("match_number", "status", "home_score", "away_score", "home_pens", "away_pens"):
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(cache, engine="auto", compression="snappy", index=False)
+    return df
 
 
 def save_processed(df: pd.DataFrame, name: str) -> None:

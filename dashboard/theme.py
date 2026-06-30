@@ -165,6 +165,36 @@ def inject_theme() -> None:
         .wc-callout{display:flex;align-items:flex-start;gap:12px;background:var(--wc-gtint);
           border-radius:var(--wc-r);padding:14px 18px;font-size:14px;color:#CDE6A8}
 
+        /* === KNOCKOUT BRACKET === */
+        .wc-ko-grid{display:grid;gap:14px;margin-bottom:20px}
+        .wc-ko-cols-4{grid-template-columns:repeat(4,1fr)}
+        .wc-ko-cols-2{grid-template-columns:repeat(2,1fr);max-width:800px}
+        .wc-ko-cols-1{grid-template-columns:1fr;max-width:420px}
+        .wc-ko-card{background:var(--wc-card);border:1px solid var(--wc-bd);
+          border-radius:var(--wc-r);padding:18px;display:flex;flex-direction:column}
+        .wc-ko-teams{display:flex;align-items:center;gap:8px;margin-bottom:14px;
+          font-size:13px;color:var(--wc-txt2);flex-wrap:wrap}
+        .wc-ko-nm{color:var(--wc-txt);font-weight:500;font-size:14px}
+        .wc-ko-vs{font-size:11px;color:var(--wc-txt3);flex:1;text-align:center}
+        .wc-ko-adv{display:flex;align-items:center;gap:8px;margin-top:auto;
+          font-size:13px;color:#CDE6A8;background:var(--wc-gtint);
+          border-radius:7px;padding:8px 12px}
+        .wc-ko-adv strong{color:var(--wc-gtxt)}
+        .wc-ko-tbd{color:var(--wc-txt3);font-style:italic}
+        /* Played matches: final score + winner badge */
+        .wc-ko-played{border-color:var(--wc-gline)}
+        .wc-ko-score{display:flex;align-items:center;justify-content:center;
+          flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+        .wc-ko-score .t{font-size:13px;color:var(--wc-txt2)}
+        .wc-ko-score .sc{font-family:'Barlow Condensed',sans-serif;font-size:30px;
+          font-weight:800;color:var(--wc-txt);line-height:1;letter-spacing:1px}
+        .wc-ko-pens{font-size:12px;color:var(--wc-txt3);width:100%;text-align:center}
+        .wc-ko-winner{display:flex;align-items:center;gap:8px;font-size:13px;
+          color:#CDE6A8;background:var(--wc-gtint);border-radius:7px;padding:8px 12px;margin-top:auto}
+        .wc-ko-winner strong{color:var(--wc-gtxt)}
+        .wc-ko-winner-played{background:rgba(242,169,59,.15);color:var(--wc-gold)}
+        .wc-ko-winner-played strong{color:var(--wc-gold)}
+
         /* === GROUP STANDINGS === */
         .wc-groups{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
         .wc-group{background:var(--wc-card);border:1px solid var(--wc-bd);
@@ -206,6 +236,7 @@ def inject_theme() -> None:
           .wc-banner-inner{padding:20px 1.5rem}
           .wc-kpis{grid-template-columns:repeat(2,1fr)}
           .wc-groups{grid-template-columns:repeat(2,1fr)}
+          .wc-ko-cols-4{grid-template-columns:repeat(2,1fr)}
         }
 
         /* === RESPONSIVE: PHONE (max-width 600px) === */
@@ -239,6 +270,9 @@ def inject_theme() -> None:
           .wc-header{flex-wrap:wrap;gap:6px}
           .wc-api-status{font-size:12px}
           .wc-api-ts{display:none}
+
+          /* Knockout grid */
+          .wc-ko-cols-4,.wc-ko-cols-2{grid-template-columns:1fr}
 
           /* Tabs (BaseWeb tab-list scrolls horizontally on overflow) */
           .stTabs [data-baseweb="tab"]{padding:10px 12px!important;font-size:13px!important}
