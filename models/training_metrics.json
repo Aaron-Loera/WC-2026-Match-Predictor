@@ -880,5 +880,26 @@
     "pass_logloss": true,
     "pass_accuracy": true,
     "pass_brier": true
+  },
+  {
+    "retrained_at": "2026-07-24T06:59:49.545979+00:00",
+    "test_logloss": 0.8949,
+    "test_accuracy": 0.5815,
+    "test_brier": 0.1763,
+    "val_logloss": 0.9586,
+    "best_params": {
+      "max_depth": 4,
+      "learning_rate": 0.080342,
+      "subsample": 0.832046,
+      "colsample_bytree": 0.736611,
+      "min_child_weight": 5
+    },
+    "n_estimators": 57,
+    "train_rows": 18759,
+    "val_rows": 965,
+    "test_rows": 3706,
+    "pass_logloss": true,
+    "pass_accuracy": true,
+    "pass_brier": true
   }
 ]
