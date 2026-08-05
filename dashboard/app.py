@@ -32,6 +32,7 @@ REQUEST_TIMEOUT = 60
 # Tournament calendar
 KICKOFF_DATE = dt.date(2026, 6, 11)
 KICKOFF_DT = dt.datetime(2026, 6, 11, 18, 0, 0, tzinfo=dt.timezone.utc)
+TOURNAMENT_END = dt.date(2026, 7, 19)
 
 # Color palette
 BG       = "#1B1D1F"; CARD     = "#26292C"; CARD_BD  = "#34383C"; TRACK = "#303438"
@@ -349,7 +350,7 @@ def render_header() -> None:
     )
 
 
-def _banner_component_html(ticker: str) -> str:
+def _banner_component_html(ticker: str, tournament_status: str = "UNDERWAY") -> str:
     """Self-contained HTML for the countdown banner component — ticks every second via JS."""
     return (
         "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
@@ -420,8 +421,8 @@ def _banner_component_html(ticker: str) -> str:
         "function tick(){"
         "var delta=T-Date.now();"
         "if(delta<=0){"
-        "el.innerHTML='<div class=\"wc-countdown\" style=\"font-family:Barlow Condensed,sans-serif;"
-        "font-size:40px;font-weight:800;color:#9FD45B;letter-spacing:2px;\">UNDERWAY</div>';"
+        f"el.innerHTML='<div class=\"wc-countdown\" style=\"font-family:Barlow Condensed,sans-serif;"
+        f"font-size:40px;font-weight:800;color:#9FD45B;letter-spacing:2px;\">{tournament_status}</div>';"
         "return;}"
         "var d=Math.floor(delta/86400000);"
         "var h=Math.floor((delta%86400000)/3600000);"
@@ -453,16 +454,16 @@ def _banner_component_html(ticker: str) -> str:
 
 
 def render_banner() -> None:
-    """    
+    """
     Display a live countdown banner with top-8 tournament favorites and animated ticker.
-    
-    Fetches tournament odds from the API and renders an animated banner featuring: (1) a 
+
+    Fetches tournament odds from the API and renders an animated banner featuring: (1) a
     countdown timer ticking down to World Cup kickoff, (2) a seamlessly scrolling ticker
     of the top 8 teams by title probability.
-    
+
     Args:
         None:
-        
+
     Returns:
         None:
     """
@@ -475,7 +476,7 @@ def render_banner() -> None:
 
     # Extract top 8 teams
     top8 = sorted(odds.items(), key=lambda kv: kv[1], reverse=True)[:8]
-    
+
     # Construct an HTML string with all 8 teams
     ticker = "".join(
         f'<span class="wc-ticker-item">{flag_img(t, 16)}'
@@ -484,8 +485,12 @@ def render_banner() -> None:
         for t, p in top8
     ) * 2
 
+    # Determine tournament status
+    today = dt.date.today()
+    tournament_status = "COMPLETE" if today > TOURNAMENT_END else "UNDERWAY"
+
     # Wrap ticker in self-contained HTML page
-    components.html(_banner_component_html(ticker), height=120, scrolling=False)
+    components.html(_banner_component_html(ticker, tournament_status), height=120, scrolling=False)
 
 
 # ---------------------------------------------------------------------------
@@ -530,9 +535,17 @@ def render_tournament_odds() -> None:
     )
 
     fav = df.iloc[0]
-    days_left = (KICKOFF_DATE - dt.date.today()).days
-    ko_val = ("Underway" if days_left < 0
-             else ("Today" if days_left == 0 else f"{days_left} days"))
+    today = dt.date.today()
+    days_left = (KICKOFF_DATE - today).days
+
+    if today > TOURNAMENT_END:
+        ko_val = "Complete"
+    elif days_left < 0:
+        ko_val = "Underway"
+    elif days_left == 0:
+        ko_val = "Today"
+    else:
+        ko_val = f"{days_left} days"
 
     # 4-column KPI strip
     st.markdown(
@@ -1351,6 +1364,8 @@ def render_odds_tracker() -> None:
     ]
     df = pd.DataFrame(long_rows)
     df["generated_at"] = pd.to_datetime(df["generated_at"], format="ISO8601")
+    tournament_end = pd.Timestamp("2026-07-21", tz="UTC")
+    df = df[df["generated_at"] < tournament_end]
 
     latest        = history[-1]["tournament_odds"]
     default_teams = sorted(latest, key=latest.get, reverse=True)[:6]
